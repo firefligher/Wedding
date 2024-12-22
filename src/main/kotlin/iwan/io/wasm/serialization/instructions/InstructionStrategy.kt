@@ -41,7 +41,7 @@ internal object InstructionStrategy :
     >
 
     private val serializationStrategies: Map<
-            KClass<out Instruction>,
+            Any,
             SerializationDescriptor<*>
     >
 
@@ -108,7 +108,9 @@ internal object InstructionStrategy :
             .associateBy(SerializationDescriptor<*>::opcode)
 
         serializationStrategies = descriptorEntries
-            .associateBy(SerializationDescriptor<*>::instructionClass)
+            .associateBy { descriptor ->
+                descriptor.instructionInstance ?: descriptor.instructionClass
+            }
     }
 
     @Throws(IOException::class)
@@ -130,14 +132,14 @@ internal object InstructionStrategy :
         value: Instruction
     ) {
         val clazz = value.javaClass.kotlin
-        val descriptor = serializationStrategies[clazz]
+        val descriptor = serializationStrategies[value]
+            ?: serializationStrategies[clazz]
             ?: serializationStrategies
-                .filterKeys(clazz::isSubclassOf)
+                .filterKeys { key ->
+                    key is KClass<*> && clazz.isSubclassOf(key)
+                }
                 .firstNotNullOf(
-                    Map.Entry<
-                            KClass<out Instruction>,
-                            SerializationDescriptor<*>
-                    >::value
+                    Map.Entry<Any, SerializationDescriptor<*>>::value
                 )
 
         sink.write(descriptor.opcode)
