@@ -1,16 +1,17 @@
 package dev.fir3.iwan.io.wasm.serialization.instructions
 
 import dev.fir3.iwan.io.serialization.DeserializationContext
-import dev.fir3.iwan.io.serialization.DeserializationStrategy
+import dev.fir3.iwan.io.serialization.SerializationContext
+import dev.fir3.iwan.io.sink.ByteSink
+import dev.fir3.iwan.io.sink.writeVarUInt32
 import dev.fir3.iwan.io.source.ByteSource
-import dev.fir3.iwan.io.source.readUInt8
 import dev.fir3.iwan.io.source.readVarUInt32
 import dev.fir3.iwan.io.wasm.models.instructions.*
 import java.io.IOException
 import kotlin.reflect.KClass
 
 internal object MemoryInstructionStrategy :
-    InstructionDeserializationStrategy {
+    InstructionSerializationStrategy<MemoryInstruction> {
     private inline fun <TInstruction : MemoryInstruction> build(
         source: ByteSource,
         factory: (align: UInt, offset: UInt) -> TInstruction
@@ -23,8 +24,8 @@ internal object MemoryInstructionStrategy :
     override fun deserialize(
         source: ByteSource,
         context: DeserializationContext,
-        model: KClass<out Instruction>,
-        instance: Instruction?
+        model: KClass<MemoryInstruction>,
+        instance: MemoryInstruction?
     ) = when (model) {
         Float32LoadInstruction::class ->
             build(source, ::Float32LoadInstruction)
@@ -90,5 +91,18 @@ internal object MemoryInstructionStrategy :
         MemoryGrowInstruction::class -> MemoryGrowInstruction
         MemorySizeInstruction::class -> MemorySizeInstruction
         else -> throw IOException("Invalid memory instruction type: $model")
+    }
+
+    override fun serialize(
+        sink: ByteSink,
+        context: SerializationContext,
+        instance: MemoryInstruction
+    ) = when (instance) {
+        is AlignedMemoryInstruction -> {
+            sink.writeVarUInt32(instance.align)
+            sink.writeVarUInt32(instance.offset)
+        }
+
+        else -> TODO()
     }
 }

@@ -1,7 +1,10 @@
 package dev.fir3.iwan.io.wasm.serialization.instructions
 
 import dev.fir3.iwan.io.serialization.DeserializationContext
+import dev.fir3.iwan.io.serialization.SerializationContext
 import dev.fir3.iwan.io.serialization.deserialize
+import dev.fir3.iwan.io.sink.ByteSink
+import dev.fir3.iwan.io.sink.write
 import dev.fir3.iwan.io.source.*
 import dev.fir3.iwan.io.wasm.models.instructions.*
 import dev.fir3.iwan.io.wasm.models.instructions.blockTypes.BlockType
@@ -9,7 +12,7 @@ import java.io.IOException
 import kotlin.reflect.KClass
 
 internal object BlockTypeInstructionStrategy :
-    InstructionDeserializationStrategy {
+    InstructionSerializationStrategy<BlockTypeInstruction> {
     @Throws(IOException::class)
     private fun <TBlockTypeInstruction : BlockTypeInstruction> build(
         source: ByteSource,
@@ -63,8 +66,8 @@ internal object BlockTypeInstructionStrategy :
     override fun deserialize(
         source: ByteSource,
         context: DeserializationContext,
-        model: KClass<out Instruction>,
-        instance: Instruction?
+        model: KClass<BlockTypeInstruction>,
+        instance: BlockTypeInstruction?
     ) = when (model) {
         BlockInstruction::class -> build(
             source,
@@ -87,5 +90,46 @@ internal object BlockTypeInstructionStrategy :
         }
 
         else -> throw IOException("Invalid block type: $model")
+    }
+
+    @OptIn(ExperimentalUnsignedTypes::class)
+    override fun serialize(
+        sink: ByteSink,
+        context: SerializationContext,
+        instance: BlockTypeInstruction
+    ) = when (instance) {
+        is BlockInstruction -> {
+            context.serialize(sink, instance.type)
+            instance.body.forEach { instruction ->
+                context.serialize(sink, instruction)
+            }
+
+            sink.write(InstructionIds.END)
+        }
+
+        is ConditionalBlockInstruction -> {
+            context.serialize(sink, instance.type)
+            instance.ifBody.forEach { instruction ->
+                context.serialize(sink, instruction)
+            }
+
+            instance.elseBody?.let { elseBody ->
+                sink.write(InstructionIds.ELSE)
+                elseBody.forEach { instruction ->
+                    context.serialize(sink, instruction)
+                }
+            }
+
+            sink.write(InstructionIds.END)
+        }
+
+        is LoopInstruction -> {
+            context.serialize(sink, instance.type)
+            instance.body.forEach { instruction ->
+                context.serialize(sink, instruction)
+            }
+
+            sink.write(InstructionIds.END)
+        }
     }
 }

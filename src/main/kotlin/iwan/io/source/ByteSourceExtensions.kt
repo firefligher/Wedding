@@ -1,7 +1,11 @@
 package dev.fir3.iwan.io.source
 
 import dev.fir3.iwan.io.common.toHexString
+import java.io.ByteArrayInputStream
 import java.io.IOException
+
+internal fun createMemoryByteSource(bytes: ByteArray): ByteSource =
+    InputStreamByteSource(ByteArrayInputStream(bytes))
 
 @Throws(IOException::class)
 internal fun ByteSource.expect(vararg expectation: Byte) {

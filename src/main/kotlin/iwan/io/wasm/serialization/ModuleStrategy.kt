@@ -1,16 +1,17 @@
 package dev.fir3.iwan.io.wasm.serialization
 
-import dev.fir3.iwan.io.serialization.DeserializationContext
-import dev.fir3.iwan.io.serialization.DeserializationStrategy
-import dev.fir3.iwan.io.serialization.deserialize
+import dev.fir3.iwan.io.serialization.*
+import dev.fir3.iwan.io.sink.ByteSink
+import dev.fir3.iwan.io.sink.write
 import dev.fir3.iwan.io.source.ByteSource
 import dev.fir3.iwan.io.source.expect
-import dev.fir3.iwan.io.wasm.models.Function
 import dev.fir3.iwan.io.wasm.models.Module
 import dev.fir3.iwan.io.wasm.models.sections.*
 import java.io.IOException
 
-internal object ModuleStrategy : DeserializationStrategy<Module> {
+internal object ModuleStrategy :
+    DeserializationStrategy<Module>,
+    SerializationStrategy<Module> {
     @Throws(IOException::class)
     override fun deserialize(
         source: ByteSource,
@@ -42,15 +43,6 @@ internal object ModuleStrategy : DeserializationStrategy<Module> {
         val codes = sections
             .filterIsInstance<CodeSection>()
             .singleOrNull()?.codes ?: emptyList()
-
-        val functions = codes.mapIndexed { index, code ->
-            val typeIndex = functionTypes[index]
-            val locals = code.locals.flatMap { (type, count) ->
-                count.downTo(1u).map { type }
-            }
-
-            Function(typeIndex, locals, code.body)
-        }
 
         val tables = sections
             .filterIsInstance<TableSection>()
@@ -87,16 +79,57 @@ internal object ModuleStrategy : DeserializationStrategy<Module> {
             .singleOrNull()
             ?.exports ?: emptyList()
 
+        val startFunction = sections
+            .filterIsInstance<StartSection>()
+            .singleOrNull()
+            ?.function
+
         return Module(
             types,
-            functions,
+            functionTypes,
             tables,
             memories,
             globals,
             elements,
             data,
             imports,
-            exports
+            exports,
+            codes,
+            startFunction
         )
+    }
+
+    override fun serialize(
+        sink: ByteSink,
+        context: SerializationContext,
+        value: Module
+    ) {
+        sink.write(
+            0x00, 0x61, 0x73, 0x6D, // File Magic
+            0x01, 0x00, 0x00, 0x00  // Version
+        )
+
+        context.serialize(sink, TypeSection(value.types))
+        context.serialize(sink, ImportSection(value.imports))
+        context.serialize(sink, FunctionSection(value.functions))
+
+        if (value.tables.isNotEmpty())
+            context.serialize(sink, TableSection(value.tables))
+
+        if (value.memories.isNotEmpty())
+            context.serialize(sink, MemorySection(value.memories))
+
+        context.serialize(sink, GlobalSection(value.globals))
+        context.serialize(sink, ExportSection(value.exports))
+
+        value.startFunction?.let { function ->
+            context.serialize(sink, StartSection(function))
+        }
+
+        if (value.elements.isNotEmpty())
+            context.serialize(sink, ElementSection(value.elements))
+
+        context.serialize(sink, CodeSection(value.codes))
+        context.serialize(sink, DataSection(value.data))
     }
 }

@@ -1,8 +1,10 @@
 package dev.fir3.iwan.io.wasm.serialization
 
-import dev.fir3.iwan.io.serialization.DeserializationContext
-import dev.fir3.iwan.io.serialization.DeserializationStrategy
-import dev.fir3.iwan.io.serialization.deserialize
+import dev.fir3.iwan.io.serialization.*
+import dev.fir3.iwan.io.sink.ByteSink
+import dev.fir3.iwan.io.sink.createMemoryByteSink
+import dev.fir3.iwan.io.sink.write
+import dev.fir3.iwan.io.sink.writeVarUInt32
 import dev.fir3.iwan.io.source.ByteSource
 import dev.fir3.iwan.io.source.readVarUInt32
 import dev.fir3.iwan.io.wasm.models.Code
@@ -10,7 +12,9 @@ import dev.fir3.iwan.io.wasm.models.Expression
 import dev.fir3.iwan.io.wasm.models.valueTypes.ValueType
 import java.io.IOException
 
-internal object CodeStrategy : DeserializationStrategy<Code> {
+internal object CodeStrategy :
+    DeserializationStrategy<Code>,
+    SerializationStrategy<Code> {
     @Throws(IOException::class)
     override fun deserialize(
         source: ByteSource,
@@ -36,5 +40,25 @@ internal object CodeStrategy : DeserializationStrategy<Code> {
 
         val body = context.deserialize<Expression>(source)
         return Code(locals, body)
+    }
+
+    override fun serialize(
+        sink: ByteSink,
+        context: SerializationContext,
+        value: Code
+    ) {
+        val bodySink = createMemoryByteSink()
+
+        bodySink.writeVarUInt32(value.locals.size.toUInt())
+        value.locals.forEach { (type, count) ->
+            bodySink.writeVarUInt32(count)
+            context.serialize(bodySink, type)
+        }
+
+        context.serialize(bodySink, value.body)
+
+        val bodyBuffer = bodySink.buffer
+        sink.writeVarUInt32(bodyBuffer.size.toUInt())
+        sink.write(*bodyBuffer)
     }
 }

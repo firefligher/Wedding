@@ -2,6 +2,11 @@ package dev.fir3.iwan.io.wasm.serialization.instructions
 
 import dev.fir3.iwan.io.serialization.DeserializationContext
 import dev.fir3.iwan.io.serialization.DeserializationStrategy
+import dev.fir3.iwan.io.serialization.SerializationContext
+import dev.fir3.iwan.io.serialization.SerializationStrategy
+import dev.fir3.iwan.io.sink.ByteSink
+import dev.fir3.iwan.io.sink.writeVarInt32
+import dev.fir3.iwan.io.sink.writeVarUInt32
 import dev.fir3.iwan.io.source.ByteSource
 import dev.fir3.iwan.io.source.readVarInt32
 import dev.fir3.iwan.io.wasm.models.instructions.blockTypes.BlockType
@@ -14,7 +19,9 @@ import dev.fir3.iwan.io.wasm.models.valueTypes.VectorType
 import dev.fir3.iwan.io.wasm.serialization.valueTypes.ValueTypeIds
 import java.io.IOException
 
-internal object BlockTypeStrategy : DeserializationStrategy<BlockType> {
+internal object BlockTypeStrategy :
+    DeserializationStrategy<BlockType>,
+    SerializationStrategy<BlockType> {
     private val EMPTY_ID = maskValueTypeId(0x40)
     private val EXTERNAL_REFERENCE_ID =
         maskValueTypeId(ValueTypeIds.EXTERNAL_REFERENCE)
@@ -28,7 +35,8 @@ internal object BlockTypeStrategy : DeserializationStrategy<BlockType> {
     private val INT64_ID = maskValueTypeId(ValueTypeIds.INT64)
     private val VECTOR128_ID = maskValueTypeId(ValueTypeIds.VECTOR128)
 
-    private fun maskValueTypeId(id: Byte) = (0xFFFFFF80u or id.toUInt()).toInt()
+    private fun maskValueTypeId(id: Byte) =
+        (0xFFFFFF80u or id.toUInt()).toInt()
 
     @Throws(IOException::class)
     override fun deserialize(
@@ -54,6 +62,28 @@ internal object BlockTypeStrategy : DeserializationStrategy<BlockType> {
             }
 
             FunctionBlockType(typeId.toUInt())
+        }
+    }
+
+    override fun serialize(
+        sink: ByteSink,
+        context: SerializationContext,
+        value: BlockType
+    ) = when (value) {
+        EmptyBlockType -> sink.writeVarInt32(EMPTY_ID)
+        is FunctionBlockType -> sink.writeVarUInt32(value.value)
+        is InlineBlockType -> when (value.valueType) {
+            NumberType.Float32 -> sink.writeVarInt32(FLOAT32_ID)
+            NumberType.Float64 -> sink.writeVarInt32(FLOAT64_ID)
+            NumberType.Int32 -> sink.writeVarInt32(INT32_ID)
+            NumberType.Int64 -> sink.writeVarInt32(INT64_ID)
+            ReferenceType.ExternalReference ->
+                sink.writeVarInt32(EXTERNAL_REFERENCE_ID)
+
+            ReferenceType.FunctionReference ->
+                sink.writeVarInt32(FUNCTION_REFERENCE_ID)
+
+            VectorType.Vector128 -> sink.writeVarInt32(VECTOR128_ID)
         }
     }
 }

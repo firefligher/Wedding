@@ -1,18 +1,27 @@
 package dev.fir3.iwan.io.wasm.serialization
 
+import dev.fir3.iwan.io.serialization.*
 import dev.fir3.iwan.io.serialization.DeserializationContext
 import dev.fir3.iwan.io.serialization.DeserializationStrategy
+import dev.fir3.iwan.io.serialization.SerializationContext
+import dev.fir3.iwan.io.serialization.SerializationStrategy
 import dev.fir3.iwan.io.serialization.deserializeVector
+import dev.fir3.iwan.io.sink.*
+import dev.fir3.iwan.io.sink.ByteSink
+import dev.fir3.iwan.io.sink.createMemoryByteSink
+import dev.fir3.iwan.io.sink.write
+import dev.fir3.iwan.io.sink.writeVarUInt32
 import dev.fir3.iwan.io.source.*
 import dev.fir3.iwan.io.source.readInt8
 import dev.fir3.iwan.io.source.readVarUInt32
 import dev.fir3.iwan.io.wasm.models.sections.*
 import java.io.IOException
 
-internal object SectionStrategy : DeserializationStrategy<Section> {
+internal object SectionStrategy :
+    DeserializationStrategy<Section>,
+    SerializationStrategy<Section> {
     private const val CODE_SECTION: Byte = 0x0A
     private const val CUSTOM_SECTION: Byte = 0x00
-    private const val DATA_COUNT_SECTION: Byte = 0x0C
     private const val DATA_SECTION: Byte = 0x0B
     private const val ELEMENT_SECTION: Byte = 0x09
     private const val EXPORT_SECTION: Byte = 0x07
@@ -117,5 +126,65 @@ internal object SectionStrategy : DeserializationStrategy<Section> {
         }
 
         else -> throw IOException("Unsupported section id '$sectionId'")
+    }
+
+    override fun serialize(
+        sink: ByteSink,
+        context: SerializationContext,
+        value: Section
+    ) {
+        val tempSink = createMemoryByteSink()
+
+        when (value) {
+            is CodeSection -> {
+                sink.write(CODE_SECTION)
+                context.serializeVector(tempSink, value.codes)
+            }
+            is CustomSection -> TODO()
+            is DataSection -> {
+                sink.write(DATA_SECTION)
+                context.serializeVector(tempSink, value.data)
+            }
+            is ElementSection -> {
+                sink.write(ELEMENT_SECTION)
+                context.serializeVector(tempSink, value.elements)
+            }
+            is ExportSection -> {
+                sink.write(EXPORT_SECTION)
+                context.serializeVector(tempSink, value.exports)
+            }
+            is FunctionSection -> {
+                sink.write(FUNCTION_SECTION)
+                tempSink.writeVarUInt32(value.types.size.toUInt())
+                value.types.forEach(tempSink::writeVarUInt32)
+            }
+            is GlobalSection -> {
+                sink.write(GLOBAL_SECTION)
+                context.serializeVector(tempSink, value.globals)
+            }
+            is ImportSection -> {
+                sink.write(IMPORT_SECTION)
+                context.serializeVector(tempSink, value.imports)
+            }
+            is MemorySection -> {
+                sink.write(MEMORY_SECTION)
+                context.serializeVector(tempSink, value.memories)
+            }
+            is StartSection -> {
+                sink.write(START_SECTION)
+                tempSink.writeVarUInt32(value.function)
+            }
+            is TableSection -> {
+                sink.write(TABLE_SECTION)
+                context.serializeVector(tempSink, value.types)
+            }
+            is TypeSection -> {
+                sink.write(TYPE_SECTION)
+                context.serializeVector(tempSink, value.types)
+            }
+        }
+
+        sink.writeVarUInt32(tempSink.buffer.size.toUInt())
+        sink.write(*tempSink.buffer)
     }
 }

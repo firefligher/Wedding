@@ -1,22 +1,24 @@
 package dev.fir3.iwan.io.wasm.serialization.instructions
 
 import dev.fir3.iwan.io.serialization.DeserializationContext
-import dev.fir3.iwan.io.serialization.DeserializationStrategy
+import dev.fir3.iwan.io.serialization.SerializationContext
+import dev.fir3.iwan.io.sink.*
+import dev.fir3.iwan.io.sink.writeFloat32
+import dev.fir3.iwan.io.sink.writeFloat64
 import dev.fir3.iwan.io.source.*
-import dev.fir3.iwan.io.source.readUInt8
-import dev.fir3.iwan.io.source.readVarInt32
-import dev.fir3.iwan.io.source.readVarInt64
 import dev.fir3.iwan.io.wasm.models.instructions.*
 import java.io.IOException
 import kotlin.reflect.KClass
 
-internal object ConstInstructionStrategy : InstructionDeserializationStrategy {
+internal object ConstInstructionStrategy :
+    InstructionSerializationStrategy<ConstInstruction<*>> {
+
     @Throws(IOException::class)
     override fun deserialize(
         source: ByteSource,
         context: DeserializationContext,
-        model: KClass<out Instruction>,
-        instance: Instruction?
+        model: KClass<ConstInstruction<*>>,
+        instance: ConstInstruction<*>?
     ) = when (model) {
         Float32ConstInstruction::class ->
             Float32ConstInstruction(source.readFloat32())
@@ -33,5 +35,16 @@ internal object ConstInstructionStrategy : InstructionDeserializationStrategy {
         else -> throw IOException(
             "Unsupported numeric constant type: $model"
         )
+    }
+
+    override fun serialize(
+        sink: ByteSink,
+        context: SerializationContext,
+        instance: ConstInstruction<*>
+    ) = when (instance) {
+        is Float32ConstInstruction -> sink.writeFloat32(instance.constant)
+        is Float64ConstInstruction -> sink.writeFloat64(instance.constant)
+        is Int32ConstInstruction -> sink.writeVarInt32(instance.constant)
+        is Int64ConstInstruction -> sink.writeVarInt64(instance.constant)
     }
 }

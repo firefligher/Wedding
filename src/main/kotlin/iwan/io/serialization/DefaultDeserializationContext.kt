@@ -5,14 +5,14 @@ import java.io.IOException
 import kotlin.reflect.KClass
 
 internal class DefaultDeserializationContext(
-    private val _strategies: Map<KClass<*>, DeserializationStrategy<*>>
+    private val strategies: Map<KClass<*>, DeserializationStrategy<*>>
 ) : DeserializationContext {
     @Throws(IOException::class)
     override fun <TValue : Any> deserialize(
         source: ByteSource,
         valueClass: KClass<TValue>
     ): TValue {
-        val strategy = _strategies[valueClass] ?: throw IOException(
+        val strategy = strategies[valueClass] ?: throw IOException(
             "Missing deserialization strategy for " +
                     "'${valueClass.qualifiedName}'"
         )

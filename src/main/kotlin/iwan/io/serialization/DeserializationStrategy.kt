@@ -5,5 +5,8 @@ import java.io.IOException
 
 internal interface DeserializationStrategy<TValue : Any> {
     @Throws(IOException::class)
-    fun deserialize(source: ByteSource, context: DeserializationContext): TValue
+    fun deserialize(
+        source: ByteSource,
+        context: DeserializationContext
+    ): TValue
 }

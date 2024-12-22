@@ -8,20 +8,29 @@ sealed interface BlockTypeInstruction : Instruction {
     val type: BlockType
 }
 
-@InstructionInfo(0x02u, BlockTypeInstructionStrategy::class)
+@InstructionInfo<BlockTypeInstructionStrategy>(
+    0x02u,
+    BlockTypeInstructionStrategy::class
+)
 data class BlockInstruction(
     override val type: BlockType,
     val body: List<Instruction>
 ) : BlockTypeInstruction
 
-@InstructionInfo(0x04u, BlockTypeInstructionStrategy::class)
+@InstructionInfo<BlockTypeInstructionStrategy>(
+    0x04u,
+    BlockTypeInstructionStrategy::class
+)
 data class ConditionalBlockInstruction(
     override val type: BlockType,
     val ifBody: List<Instruction>,
     val elseBody: List<Instruction>?
 ) : BlockTypeInstruction
 
-@InstructionInfo(0x03u, BlockTypeInstructionStrategy::class)
+@InstructionInfo<BlockTypeInstructionStrategy>(
+    0x03u,
+    BlockTypeInstructionStrategy::class
+)
 data class LoopInstruction(
     override val type: BlockType,
     val body: List<Instruction>
