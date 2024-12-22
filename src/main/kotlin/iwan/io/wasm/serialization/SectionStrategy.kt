@@ -104,6 +104,10 @@ internal object SectionStrategy : DeserializationStrategy<Section> {
             MemorySection(ctx.deserializeVector(src))
         }
 
+        START_SECTION -> build(source, context) { src, _, _ ->
+            StartSection(src.readVarUInt32())
+        }
+
         TABLE_SECTION -> build(source, context) { src, ctx, _ ->
             TableSection(ctx.deserializeVector(src))
         }
