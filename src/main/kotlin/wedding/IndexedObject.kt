@@ -1,4 +1,4 @@
-package dev.fir3.wedding.input
+package dev.fir3.wedding
 
 internal interface IndexedObject {
     val index: UInt

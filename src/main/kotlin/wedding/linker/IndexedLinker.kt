@@ -1,22 +1,28 @@
-package dev.fir3.wedding.relocation
+package dev.fir3.wedding.linker
 
-import dev.fir3.wedding.input.IndexedObject
+import dev.fir3.wedding.IndexedObject
 import kotlin.reflect.KClass
 import kotlin.reflect.safeCast
 
-internal class IndexedLinker<TIndexed, TIndexedExport, TIndexedImport>(
+internal class IndexedLinker<
+        TIndexed,
+        TIndexedExport,
+        TIndexedImport,
+        TIndexOutput
+>(
     private val indexedExportClass: KClass<TIndexedExport>,
     private val indexedImportClass: KClass<TIndexedImport>,
     private val matcher: (TIndexedImport, TIndexedExport) -> Boolean,
-    private val adjuster: (TIndexed, UInt, String) -> TIndexed,
-    private val importMatcher: (TIndexedImport, TIndexedImport) -> Boolean
+    private val adjuster: (TIndexed, UInt, String) -> TIndexOutput,
+    private val importMatcher: (TIndexOutput, TIndexedImport) -> Boolean
 ) where TIndexed : IndexedObject,
         TIndexedImport : TIndexed,
-        TIndexedExport : TIndexed {
+        TIndexedExport : TIndexed,
+        TIndexOutput : IndexedObject {
     fun link(
         relocations: RelocationTable,
         input: Set<TIndexed>,
-        output: MutableSet<TIndexed>,
+        output: MutableSet<TIndexOutput>,
         outputModuleName: String
     ) {
         val imports = mutableListOf<TIndexedImport>()
@@ -45,7 +51,6 @@ internal class IndexedLinker<TIndexed, TIndexedExport, TIndexedImport>(
             }
 
             val duplicate = output
-                .filterIsInstance(indexedImportClass.java)
                 .singleOrNull { importMatcher(it, import) }
 
             if (duplicate != null) {

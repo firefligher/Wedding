@@ -1,4 +1,4 @@
-package dev.fir3.wedding.relocation
+package dev.fir3.wedding.linker
 
 import dev.fir3.wedding.input.function.ExportedFunction
 import dev.fir3.wedding.input.function.ImportedFunction
@@ -9,6 +9,9 @@ import dev.fir3.wedding.input.global.InternalGlobal
 import dev.fir3.wedding.input.memory.ExportedMemory
 import dev.fir3.wedding.input.memory.ImportedMemory
 import dev.fir3.wedding.input.memory.InternalMemory
+import dev.fir3.wedding.linker.function.LinkedExportedFunction
+import dev.fir3.wedding.linker.function.LinkedImportedFunction
+import dev.fir3.wedding.linker.function.LinkedInternalFunction
 
 internal val functionLinker = IndexedLinker(
     ExportedFunction::class,
@@ -19,27 +22,44 @@ internal val functionLinker = IndexedLinker(
     },
     { function, relocatedIndex, moduleName ->
         when (function) {
-            is ExportedFunction -> function.copy(
-                index = relocatedIndex,
-                moduleName = moduleName,
+            is ExportedFunction -> LinkedExportedFunction(
+                expression = function.expression,
                 functionName = function.moduleName
                         + '$'
-                        + function.functionName
+                        + function.functionName,
+
+                index = relocatedIndex,
+                isStart = function.isStart,
+                locals = function.locals,
+                moduleName = moduleName,
+                originalModule = function.moduleName,
+                type = function.type
             )
 
-            is ImportedFunction -> function.copy(
+            is ImportedFunction -> LinkedImportedFunction(
+                functionName = function.functionName,
                 index = relocatedIndex,
-                moduleName = moduleName
+                isStart = function.isStart,
+                moduleName = moduleName,
+                originalModule = function.moduleName,
+                sourceModule = function.sourceModule,
+                type = function.type
             )
 
-            is InternalFunction -> function.copy(
+            is InternalFunction -> LinkedInternalFunction(
+                expression = function.expression,
                 index = relocatedIndex,
-                moduleName = moduleName
+                isStart = function.isStart,
+                locals = function.locals,
+                moduleName = moduleName,
+                originalModule = function.moduleName,
+                type = function.type
             )
         }
     },
     { a, b ->
-        a.sourceModule == b.sourceModule &&
+        a is LinkedImportedFunction &&
+                a.sourceModule == b.sourceModule &&
                 a.functionName == b.functionName
     }
 )
@@ -71,7 +91,8 @@ internal val globalLinker = IndexedLinker(
         }
     },
     { a, b ->
-        a.sourceModule == b.sourceModule &&
+        a is ImportedGlobal &&
+                a.sourceModule == b.sourceModule &&
                 a.globalName == b.globalName
     }
 )
@@ -103,7 +124,8 @@ internal val memoryLinker = IndexedLinker(
         }
     },
     { a, b ->
-        a.sourceModule == b.sourceModule &&
+        a is ImportedMemory &&
+                a.sourceModule == b.sourceModule &&
                 a.memoryName == b.memoryName
     }
 )

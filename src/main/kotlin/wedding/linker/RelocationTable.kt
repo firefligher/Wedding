@@ -1,4 +1,4 @@
-package dev.fir3.wedding.relocation
+package dev.fir3.wedding.linker
 
 internal class RelocationTable {
     private val relocations = mutableMapOf<String, MutableMap<UInt, UInt>>()
@@ -7,5 +7,9 @@ internal class RelocationTable {
         relocations.computeIfAbsent(moduleName) {
             mutableMapOf()
         }[originalIndex] = newIndex
+    }
+
+    fun resolveEntry(moduleName: String, originalIndex: UInt): UInt {
+        return relocations[moduleName]!![originalIndex]!!
     }
 }

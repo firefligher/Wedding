@@ -17,10 +17,10 @@ import dev.fir3.wedding.input.memory.ExportedMemory
 import dev.fir3.wedding.input.memory.ImportedMemory
 import dev.fir3.wedding.input.memory.InternalMemory
 import dev.fir3.wedding.input.memory.MemoryEntry
-import dev.fir3.wedding.relocation.RelocationTable
-import dev.fir3.wedding.relocation.functionLinker
-import dev.fir3.wedding.relocation.globalLinker
-import dev.fir3.wedding.relocation.memoryLinker
+import dev.fir3.wedding.linker.function.LinkedExportedFunction
+import dev.fir3.wedding.linker.function.LinkedFunctionEntry
+import dev.fir3.wedding.linker.function.LinkedImportedFunction
+import dev.fir3.wedding.linker.function.LinkedInternalFunction
 
 internal object Linker {
     private const val LINKED_MODULE_NAME = "LINKED"
@@ -54,16 +54,9 @@ internal object Linker {
 
         // Link exports and imports
 
-        val outputFunctions = mutableSetOf<FunctionEntry>()
+        var outputFunctions = mutableSetOf<LinkedFunctionEntry>()
         val outputGlobals = mutableSetOf<GlobalEntry>()
         val outputMemories = mutableSetOf<MemoryEntry>()
-
-        functionLinker.link(
-            functionRelocations,
-            inputFunctions,
-            outputFunctions,
-            LINKED_MODULE_NAME
-        )
 
         globalLinker.link(
             globalRelocations,
@@ -79,11 +72,70 @@ internal object Linker {
             LINKED_MODULE_NAME
         )
 
-        val exports = mutableListOf<Export>()
-        val imports = mutableListOf<Import>()
-        val globals = mutableListOf<Global>()
+        functionLinker.link(
+            functionRelocations,
+            inputFunctions,
+            outputFunctions,
+            LINKED_MODULE_NAME
+        )
 
-        outputGlobals.forEach { global ->
+        outputFunctions = outputFunctions.map { f ->
+            when (f) {
+                is LinkedExportedFunction -> f.copy(
+                    expression = linkExpression(
+                        f.expression,
+                        f.originalModule,
+                        functionRelocations,
+                        globalRelocations
+                    )
+                )
+
+                is LinkedImportedFunction -> f
+                is LinkedInternalFunction -> f.copy(
+                    expression = linkExpression(
+                        f.expression,
+                        f.originalModule,
+                        functionRelocations,
+                        globalRelocations
+                    )
+                )
+            }
+        }.toMutableSet()
+
+        val codes = mutableListOf<Code>()
+        val datas = mutableListOf<Data>()
+        val exports = mutableListOf<Export>()
+        val functions = mutableListOf<UInt>()
+        val globals = mutableListOf<Global>()
+        val imports = mutableListOf<Import>()
+        val memories = mutableListOf<MemoryType>()
+        val types = collectFunctionTypes(outputFunctions)
+
+        outputFunctions.sortedBy { f -> f.index }.forEach { function ->
+            when (function) {
+                is LinkedExportedFunction -> {
+                    functions += types.indexOf(function.type).toUInt()
+                    codes += Code(function.locals, function.expression)
+                    exports += FunctionExport(
+                        function.functionName,
+                        function.index
+                    )
+                }
+
+                is LinkedImportedFunction -> imports += FunctionImport(
+                    function.sourceModule,
+                    function.functionName,
+                    types.indexOf(function.type).toUInt()
+                )
+
+                is LinkedInternalFunction -> {
+                    functions += types.indexOf(function.type).toUInt()
+                    codes += Code(function.locals, function.expression)
+                }
+            }
+        }
+
+        outputGlobals.sortedBy { global -> global.index }.forEach { global ->
             when (global) {
                 is ExportedGlobal -> {
                     exports += GlobalExport(global.globalName, global.index)
@@ -103,18 +155,57 @@ internal object Linker {
             }
         }
 
+        outputMemories.sortedBy { m -> m.index }.forEach {  m ->
+            when (m) {
+                is ExportedMemory -> TODO()
+                is ImportedMemory -> imports += MemoryImport(
+                    m.sourceModule,
+                    m.memoryName,
+                    m.type
+                )
+                is InternalMemory -> TODO()
+            }
+        }
+
+        datas.addAll(
+            inputDatas.map { d ->
+                when (d) {
+                    is ActiveDataEntry -> ActiveData(
+                        initializers = d.initializers,
+                        memoryIndex = memoryRelocations
+                            .resolveEntry(d.moduleName, d.memoryIndex),
+                        linkExpression(
+                            d.offset,
+                            d.moduleName,
+                            functionRelocations,
+                            globalRelocations
+                        )
+                    )
+                    is PassiveDataEntry -> PassiveData(
+                        d.initializers
+                    )
+                }
+            }
+        )
+
+        val startFunctions = outputFunctions.filter { f -> f.isStart }
+
+        if (startFunctions.size > 1) {
+            TODO()
+        }
+
         return Module(
-            types = emptyList(),
-            functions = emptyList(),
+            types = types,
+            functions = functions,
             tables = emptyList(),
-            memories = emptyList(),
+            memories = memories,
             globals = globals,
             elements = emptyList(),
-            data = emptyList(),
+            data = datas,
             imports = imports,
             exports = exports,
-            codes = emptyList(),
-            startFunction = null
+            codes = codes,
+            startFunction = startFunctions.map { f -> f.index }.singleOrNull()
         )
     }
 
