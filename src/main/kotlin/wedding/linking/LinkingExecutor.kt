@@ -25,30 +25,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
-internal class Executor {
+internal class LinkingExecutor : AbstractExecutor() {
     companion object {
         private const val OUTPUT_MODULE_NAME = "LINKED"
     }
 
-    private val inputModulePaths = mutableMapOf<String, Path>()
-    private var outputModulePath: Path? = null
-
-    fun addInputModulePath(name: String, path: Path): Boolean =
-        inputModulePaths.put(name, path) == null
-
-    fun setOutputModulePath(path: Path): Path? {
-        val previousPath = outputModulePath
-        outputModulePath = path
-        return previousPath
-    }
-
-    fun execute() {
-        // Make everything that we have immutable, such that we only have one
-        // truth.
-
-        val inputModulePaths = inputModulePaths.entries
-        val outputModulePath = checkNotNull(outputModulePath)
-
+    override fun execute(
+        inputModulePaths: Collection<Pair<String, Path>>,
+        outputModulePath: Path?
+    ) {
         // Deserialize the WebAssembly modules
 
         val inputModules = inputModulePaths.map { (name, path) ->
@@ -141,7 +126,7 @@ internal class Executor {
 
         try {
             Files.newOutputStream(
-                outputModulePath,
+                requireNotNull(outputModulePath),
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.WRITE

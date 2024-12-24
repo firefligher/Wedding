@@ -1,7 +1,8 @@
 package dev.fir3.wedding
 
 import dev.fir3.wedding.external.withPathConverter
-import dev.fir3.wedding.linking.Executor
+import dev.fir3.wedding.linking.IdentifierPrintingExecutor
+import dev.fir3.wedding.linking.LinkingExecutor
 import joptsimple.OptionParser
 import java.nio.file.Paths
 
@@ -19,6 +20,16 @@ fun main(args: Array<String>) {
         .withRequiredArg()
         .withPathConverter()
         .defaultsTo(Paths.get("LINKED.wasm"))
+
+    val optPrintIdentifiers = parser
+        .accepts("print-identifiers")
+
+    val optRename = parser
+        .acceptsAll(
+            listOf("r", "rename"),
+            "Renames the corresponding symbol."
+        )
+        .withRequiredArg()
 
     val optSourceNames = parser
         .acceptsAll(
@@ -50,7 +61,12 @@ fun main(args: Array<String>) {
 
     // Build and run the executor.
 
-    val executor = Executor()
+    val executor = if (options.has(optPrintIdentifiers)) {
+        IdentifierPrintingExecutor()
+    } else {
+        LinkingExecutor()
+    }
+
     check(executor.setOutputModulePath(outputPath) == null)
 
     for ((name, path) in sourceNames.zip(sourcePaths)) {
