@@ -9,18 +9,4 @@ internal data class DefinedUnlinkedGlobal(
     val initializer: Expression,
     override val module: String,
     override val type: GlobalType
-) : UnlinkedGlobal {
-    override val debugIdentifier: String get() {
-        val b = StringBuilder()
-        b.append("D:")
-        b.append(module)
-        b.append(".")
-
-        if (exportName != null) b.append(exportName)
-        else b.append(index)
-
-        b.append(": ")
-        b.append(type.valueType)
-        return b.toString()
-    }
-}
+) : UnlinkedGlobal

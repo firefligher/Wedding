@@ -3,6 +3,7 @@ package dev.fir3.wedding.output.collector
 import dev.fir3.iwan.io.wasm.models.Code
 import dev.fir3.iwan.io.wasm.models.FunctionExport
 import dev.fir3.iwan.io.wasm.models.FunctionImport
+import dev.fir3.wedding.Log
 import dev.fir3.wedding.common.model.Indexed
 import dev.fir3.wedding.linking.model.RelocationContainer
 import dev.fir3.wedding.linking.model.function.DefinedRelocatedFunction
@@ -42,6 +43,8 @@ internal object FunctionCollector : Collector {
             }
 
             function.exportName?.let { exportName ->
+                Log.d("Exporting function $exportName")
+
                 destination.exports += FunctionExport(
                     name = exportName,
                     functionIndex = function.index

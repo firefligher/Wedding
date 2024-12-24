@@ -21,8 +21,7 @@ internal data class ImportedUnlinkedFunction(
         b.append(functionName)
         b.append("(")
         b.append(type.parameterTypes.joinToString(","))
-        b.append(")")
-        b.append(":")
+        b.append("):")
         b.append(type.resultTypes.joinToString(","))
 
         return b.toString()

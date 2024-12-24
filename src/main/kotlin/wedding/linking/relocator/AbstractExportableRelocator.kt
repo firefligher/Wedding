@@ -57,17 +57,13 @@ internal abstract class AbstractExportableRelocator<
             if (fixups.isNotEmpty()) {
                 val (definition, fixup) = fixups.single()
 
-                Log.d(
-                    "Linking '%s' with '%s'",
-                    import.debugIdentifier,
-                    definition.debugIdentifier
-                )
+                Log.d("Linking '%s' with '%s'", import, definition)
 
                 importFixups += Fixable(fixup, import)
                 continue
             }
 
-            Log.d("Preserving '%s'", import.debugIdentifier)
+            Log.d("Preserving '%s'", import)
 
             val relocatedIndex = nextRelocatedIndex++
             output += deriveOutputElement(

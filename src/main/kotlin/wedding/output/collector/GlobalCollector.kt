@@ -3,6 +3,7 @@ package dev.fir3.wedding.output.collector
 import dev.fir3.iwan.io.wasm.models.Global
 import dev.fir3.iwan.io.wasm.models.GlobalExport
 import dev.fir3.iwan.io.wasm.models.GlobalImport
+import dev.fir3.wedding.Log
 import dev.fir3.wedding.common.model.Indexed
 import dev.fir3.wedding.linking.model.RelocationContainer
 import dev.fir3.wedding.linking.model.global.DefinedRelocatedGlobal
@@ -30,6 +31,8 @@ internal object GlobalCollector : Collector {
             }
 
             global.exportName?.let { exportName ->
+                Log.d("Exporting global $exportName")
+
                 destination.exports += GlobalExport(
                     name = exportName,
                     globalIndex = global.index

@@ -2,6 +2,7 @@ package dev.fir3.wedding.output.collector
 
 import dev.fir3.iwan.io.wasm.models.MemoryExport
 import dev.fir3.iwan.io.wasm.models.MemoryImport
+import dev.fir3.wedding.Log
 import dev.fir3.wedding.common.model.Indexed
 import dev.fir3.wedding.linking.model.RelocationContainer
 import dev.fir3.wedding.linking.model.memory.DefinedRelocatedMemory
@@ -26,9 +27,11 @@ internal object MemoryCollector : Collector {
                     )
             }
 
-            memory.exportName?.let { exportedName ->
+            memory.exportName?.let { exportName ->
+                Log.d("Exporting memory $exportName")
+
                 destination.exports += MemoryExport(
-                    name = exportedName,
+                    name = exportName,
                     memoryIndex = memory.index
                 )
             }
