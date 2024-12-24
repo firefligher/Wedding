@@ -7,13 +7,16 @@ import kotlin.math.min
 
 class InputStreamByteSource(
     source: InputStream
-) : ByteSource {
+) : AutoCloseable, ByteSource {
     private var _buffer: ByteArray? = null
     private var _bufferPosition = 0
     private var _bufferLimit = 0
     private var _isEof: Boolean? = null
     private var _marked = false
     private val _source = BufferedInputStream(source)
+
+    @Throws(IOException::class)
+    override fun close() = _source.close()
 
     override fun isEof(): Boolean {
         var safeIsEof = _isEof

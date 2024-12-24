@@ -1,43 +1,64 @@
 package dev.fir3.wedding
 
-import dev.fir3.iwan.io.sink.OutputStreamByteSink
-import dev.fir3.iwan.io.source.InputStreamByteSource
-import dev.fir3.iwan.io.wasm.BinaryFormat
-import dev.fir3.wedding.linker.Linker
-import java.nio.file.Files
+import dev.fir3.wedding.external.ofType
+import dev.fir3.wedding.linking.Executor
+import joptsimple.OptionParser
+import java.nio.file.Path
 import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
 
-private fun loadModule(path: String) = Files.newInputStream(
-    Paths.get(path),
-    StandardOpenOption.READ
-).use { stream ->
-    BinaryFormat.deserializeModule(InputStreamByteSource(stream))
-}
+fun main(args: Array<String>) {
+    val parser = OptionParser()
 
-fun main() {
-    val fstar = NamedModule("FStar", loadModule("input/FStar.wasm"))
-    val hacl = NamedModule(
-        "Hacl_Hash_SHA2",
-        loadModule("input/Hacl_Hash_SHA2.wasm")
-    )
+    // Initialize the CLI parser
 
-    val support = NamedModule(
-        "WasmSupport",
-        loadModule("input/WasmSupport.wasm")
-    )
-
-    val linkedModule = Linker.link(fstar, hacl, support)
-
-    Files.newOutputStream(
-        Paths.get("LINKED.wasm"),
-        StandardOpenOption.TRUNCATE_EXISTING,
-        StandardOpenOption.WRITE,
-        StandardOpenOption.CREATE
-    ).use { stream ->
-        BinaryFormat.serializeModule(
-            OutputStreamByteSink(stream),
-            linkedModule
+    val optHelp = parser.acceptsAll(listOf("h", "help"), "Shows this help.")
+    val optOutputPath = parser
+        .acceptsAll(
+            listOf("o", "output"),
+            "The path of the output binary."
         )
+        .withRequiredArg()
+        .ofType<Path>()
+        .defaultsTo(Paths.get("LINKED.wasm"))
+
+    val optSourceNames = parser
+        .acceptsAll(
+            listOf("n", "name"),
+            "The name of some WebAssembly module that shall be linked."
+        )
+        .withRequiredArg()
+        .ofType<String>()
+
+    val optSourcePaths = parser
+        .acceptsAll(
+            listOf("i", "input"),
+            "The path to some WebAssembly module binary that shall be linked."
+        )
+        .withRequiredArg()
+        .ofType<Path>()
+
+    // Parse the command-line arguments
+
+    val options = parser.parse(*args)
+
+    if (options.has(optHelp)) {
+        parser.printHelpOn(System.out)
+        return
     }
+
+    val outputPath = optOutputPath.value(options)
+    val sourceNames = optSourceNames.values(options)
+    val sourcePaths = optSourcePaths.values(options)
+
+    // Build and run the executor.
+
+    val executor = Executor()
+    check(executor.setOutputModulePath(outputPath) == null)
+
+    for ((name, path) in sourceNames.zip(sourcePaths)) {
+        val isDuplicate = !executor.addInputModulePath(name, path)
+        if (isDuplicate) TODO("We need some logger or something.")
+    }
+
+    executor.execute()
 }
