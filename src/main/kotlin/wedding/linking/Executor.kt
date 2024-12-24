@@ -63,6 +63,7 @@ internal class Executor {
 
                 NamedModule(name, module)
             } catch (ex: IOException) {
+                ex.printStackTrace()
                 TODO("We should implement error handling here")
             }
         }

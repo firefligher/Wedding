@@ -1,5 +1,6 @@
 package dev.fir3.wedding.linking.relocator
 
+import dev.fir3.wedding.Log
 import dev.fir3.wedding.common.model.Exportable
 import dev.fir3.wedding.linking.model.MutableRelocationTable
 import kotlin.reflect.KClass
@@ -49,14 +50,24 @@ internal abstract class AbstractExportableRelocator<
         for (import in imports) {
             val fixups = definitionFixups.filterKeys { definition ->
                 isLinkable(import, definition)
-            }.values
+            }.entries
 
             check(fixups.size < 2)
 
             if (fixups.isNotEmpty()) {
-                importFixups += Fixable(fixups.single(), import)
+                val (definition, fixup) = fixups.single()
+
+                Log.d(
+                    "Linking '%s' with '%s'",
+                    import.debugIdentifier,
+                    definition.debugIdentifier
+                )
+
+                importFixups += Fixable(fixup, import)
                 continue
             }
+
+            Log.d("Preserving '%s'", import.debugIdentifier)
 
             val relocatedIndex = nextRelocatedIndex++
             output += deriveOutputElement(

@@ -12,4 +12,22 @@ internal data class DefinedUnlinkedFunction(
     val locals: List<Pair<ValueType, UInt>>,
     override val module: String,
     override val type: FunctionType
-) : UnlinkedFunction
+) : UnlinkedFunction {
+    override val debugIdentifier: String get() {
+        val b = StringBuilder()
+        b.append("D:")
+        b.append(module)
+        b.append('.')
+
+        if (exportName != null) b.append(exportName)
+        else b.append(index)
+
+        b.append("(")
+        b.append(type.parameterTypes.joinToString(","))
+        b.append(")")
+        b.append(":")
+        b.append(type.resultTypes.joinToString(","))
+
+        return b.toString()
+    }
+}

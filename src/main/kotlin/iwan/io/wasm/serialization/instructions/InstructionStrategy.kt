@@ -1,6 +1,5 @@
 package dev.fir3.iwan.io.wasm.serialization.instructions
 
-import dev.fir3.iwan.io.common.ClassLoaderUtilities
 import dev.fir3.iwan.io.serialization.DeserializationContext
 import dev.fir3.iwan.io.serialization.DeserializationStrategy
 import dev.fir3.iwan.io.serialization.SerializationContext
@@ -46,18 +45,55 @@ internal object InstructionStrategy :
     >
 
     init {
-        val classes = ClassLoaderUtilities.queryClasses(
-            Instruction::class.java.classLoader,
-            Instruction::class.java.`package`.name
-        ).mapNotNull { clazz ->
-            if (!Instruction::class.java.isAssignableFrom(clazz)) null
-            else {
-                // Safe cast due to the assignability.
+        // FIXME: Convert this to a SPI or similar. Apparently, class discovery
+        //        via ClassLoader is undefined behavior.
 
-                @Suppress("UNCHECKED_CAST")
-                clazz as Class<out Instruction>
-            }
-        }
+        val classes = listOf(
+            BlockInstruction::class.java,
+            ConditionalBlockInstruction::class.java,
+            LoopInstruction::class.java,
+            UnconditionalBranchInstruction::class.java,
+            ConditionalBranchInstruction::class.java,
+            TableBranchInstruction::class.java,
+            CallInstruction::class.java,
+            CallInstruction::class.java,
+            Float32ConstInstruction::class.java,
+            Float64ConstInstruction::class.java,
+            Int32ConstInstruction::class.java,
+            Int64ConstInstruction::class.java,
+            FlatInstruction::class.java,
+            Float32LoadInstruction::class.java,
+            Float32StoreInstruction::class.java,
+            Float64LoadInstruction::class.java,
+            Float64StoreInstruction::class.java,
+            Int32LoadInstruction::class.java,
+            Int32Load8SInstruction::class.java,
+            Int32Load8UInstruction::class.java,
+            Int32Load16SInstruction::class.java,
+            Int32Load16UInstruction::class.java,
+            Int32StoreInstruction::class.java,
+            Int32Store8Instruction::class.java,
+            Int32Store16Instruction::class.java,
+            Int64LoadInstruction::class.java,
+            Int64Load8SInstruction::class.java,
+            Int64Load8UInstruction::class.java,
+            Int64Load16SInstruction::class.java,
+            Int64Load16UInstruction::class.java,
+            Int64Load32SInstruction::class.java,
+            Int64Load32UInstruction::class.java,
+            Int64StoreInstruction::class.java,
+            Int64Store8Instruction::class.java,
+            Int64Store16Instruction::class.java,
+            Int64Store32Instruction::class.java,
+            MemoryGrowInstruction::class.java,
+            MemorySizeInstruction::class.java,
+            ReferenceFunctionInstruction::class.java,
+            LocalGetInstruction::class.java,
+            LocalSetInstruction::class.java,
+            LocalTeeInstruction::class.java,
+            GlobalGetInstruction::class.java,
+            GlobalSetInstruction::class.java
+        )
 
         val descriptorEntries = classes.mapNotNull { clazz ->
             val info = clazz.getAnnotation(InstructionInfo::class.java)

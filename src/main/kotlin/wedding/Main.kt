@@ -1,9 +1,8 @@
 package dev.fir3.wedding
 
-import dev.fir3.wedding.external.ofType
+import dev.fir3.wedding.external.withPathConverter
 import dev.fir3.wedding.linking.Executor
 import joptsimple.OptionParser
-import java.nio.file.Path
 import java.nio.file.Paths
 
 fun main(args: Array<String>) {
@@ -18,7 +17,7 @@ fun main(args: Array<String>) {
             "The path of the output binary."
         )
         .withRequiredArg()
-        .ofType<Path>()
+        .withPathConverter()
         .defaultsTo(Paths.get("LINKED.wasm"))
 
     val optSourceNames = parser
@@ -27,7 +26,6 @@ fun main(args: Array<String>) {
             "The name of some WebAssembly module that shall be linked."
         )
         .withRequiredArg()
-        .ofType<String>()
 
     val optSourcePaths = parser
         .acceptsAll(
@@ -35,7 +33,7 @@ fun main(args: Array<String>) {
             "The path to some WebAssembly module binary that shall be linked."
         )
         .withRequiredArg()
-        .ofType<Path>()
+        .withPathConverter()
 
     // Parse the command-line arguments
 
