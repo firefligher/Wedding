@@ -42,5 +42,6 @@ internal object GlobalRelocator : AbstractExportableRelocator<
         import: ImportedUnlinkedGlobal,
         definition: DefinedUnlinkedGlobal
     ) = import.sourceModule == definition.module &&
-            import.globalName == definition.exportName
+            import.globalName == definition.exportName &&
+            import.type == definition.type
 }

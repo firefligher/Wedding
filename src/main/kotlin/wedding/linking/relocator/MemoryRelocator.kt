@@ -41,5 +41,6 @@ internal object MemoryRelocator : AbstractExportableRelocator<
         import: ImportedUnlinkedMemory,
         definition: DefinedUnlinkedMemory
     ) = import.sourceModule == definition.module &&
-            import.memoryName == definition.exportName
+            import.memoryName == definition.exportName &&
+            import.type == definition.type
 }

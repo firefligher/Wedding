@@ -44,5 +44,6 @@ internal object FunctionRelocator : AbstractExportableRelocator<
         import: ImportedUnlinkedFunction,
         definition: DefinedUnlinkedFunction
     ) = import.sourceModule == definition.module &&
-            import.functionName == definition.exportName
+            import.functionName == definition.exportName &&
+            import.type == definition.type
 }
