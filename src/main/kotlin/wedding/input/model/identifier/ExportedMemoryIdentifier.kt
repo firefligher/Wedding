@@ -5,5 +5,5 @@ import dev.fir3.iwan.io.wasm.models.MemoryType
 internal data class ExportedMemoryIdentifier(
     val memory: String,
     val module: String,
-    val type: MemoryType
-) : Identifier
+    override val type: MemoryType
+) : MemoryIdentifier

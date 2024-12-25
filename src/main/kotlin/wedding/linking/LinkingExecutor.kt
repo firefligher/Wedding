@@ -4,21 +4,24 @@ import dev.fir3.iwan.io.sink.OutputStreamByteSink
 import dev.fir3.iwan.io.source.InputStreamByteSource
 import dev.fir3.iwan.io.wasm.BinaryFormat
 import dev.fir3.iwan.io.wasm.models.Module
-import dev.fir3.wedding.Log
-import dev.fir3.wedding.input.IdentifierParser
 import dev.fir3.wedding.input.loader.DataLoader
 import dev.fir3.wedding.input.loader.FunctionLoader
 import dev.fir3.wedding.input.loader.GlobalLoader
 import dev.fir3.wedding.input.loader.MemoryLoader
 import dev.fir3.wedding.input.model.MutableInputContainer
 import dev.fir3.wedding.input.model.RenameEntry
-import dev.fir3.wedding.input.model.isValid
+import dev.fir3.wedding.input.model.identifier.Identifier
 import dev.fir3.wedding.linking.model.MutableRelocationContainer
 import dev.fir3.wedding.linking.model.NamedModule
 import dev.fir3.wedding.linking.relocator.DataRelocator
 import dev.fir3.wedding.linking.relocator.FunctionRelocator
 import dev.fir3.wedding.linking.relocator.GlobalRelocator
 import dev.fir3.wedding.linking.relocator.MemoryRelocator
+import dev.fir3.wedding.linking.renamer.*
+import dev.fir3.wedding.linking.renamer.AbstractRenamer
+import dev.fir3.wedding.linking.renamer.ExportedFunctionRenamer
+import dev.fir3.wedding.linking.renamer.ExportedGlobalRenamer
+import dev.fir3.wedding.linking.renamer.ExportedMemoryRenamer
 import dev.fir3.wedding.output.collector.DataCollector
 import dev.fir3.wedding.output.collector.FunctionCollector
 import dev.fir3.wedding.output.collector.GlobalCollector
@@ -28,7 +31,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import kotlin.system.exitProcess
 
 internal class LinkingExecutor : AbstractExecutor() {
     companion object {
@@ -38,28 +40,8 @@ internal class LinkingExecutor : AbstractExecutor() {
     override fun execute(
         inputModulePaths: Collection<Pair<String, Path>>,
         outputModulePath: Path?,
-        renameEntries: Collection<RenameEntry>
+        renameEntries: Collection<RenameEntry<*>>
     ) {
-        // Rename entry validation.
-
-        var isValid = true
-
-        for (renameEntry in renameEntries) {
-            if (!renameEntry.isValid) {
-                Log.e(
-                    "Encountered invalid renaming operation: '%s' to '%s'",
-                    IdentifierParser.stringify(renameEntry.originalIdentifier),
-                    IdentifierParser.stringify(renameEntry.newIdentifier)
-                )
-
-                isValid = false
-            }
-        }
-
-        if (!isValid) {
-            exitProcess(1)
-        }
-
         // Deserialize the WebAssembly modules
 
         val inputModules = inputModulePaths.map { (name, path) ->
@@ -88,6 +70,15 @@ internal class LinkingExecutor : AbstractExecutor() {
         FunctionLoader.load(inputModules, inputContainer.functions)
         GlobalLoader.load(inputModules, inputContainer.globals)
         MemoryLoader.load(inputModules, inputContainer.memories)
+
+        // Apply renaming.
+
+        ExportedFunctionRenamer.apply(inputContainer, renameEntries)
+        ExportedGlobalRenamer.apply(inputContainer, renameEntries)
+        ExportedMemoryRenamer.apply(inputContainer, renameEntries)
+        ImportedFunctionRenamer.apply(inputContainer, renameEntries)
+        ImportedGlobalRenamer.apply(inputContainer, renameEntries)
+        ImportedMemoryRenamer.apply(inputContainer, renameEntries)
 
         // Reassign indices and link imports with exports, if possible.
 
@@ -164,3 +155,9 @@ internal class LinkingExecutor : AbstractExecutor() {
         }
     }
 }
+
+private inline fun <reified TIdentifier : Identifier<*>>
+AbstractRenamer<TIdentifier, *>.apply(
+    container: MutableInputContainer,
+    renameEntries: Collection<RenameEntry<*>>
+) = rename(container, renameEntries.filterIsInstance<RenameEntry<TIdentifier>>())

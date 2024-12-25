@@ -21,7 +21,7 @@ internal class IdentifierPrintingExecutor : AbstractExecutor() {
     override fun execute(
         inputModulePaths: Collection<Pair<String, Path>>,
         outputModulePath: Path?,
-        renameEntries: Collection<RenameEntry>
+        renameEntries: Collection<RenameEntry<*>>
     ) {
         // Deserialize the WebAssembly modules
 

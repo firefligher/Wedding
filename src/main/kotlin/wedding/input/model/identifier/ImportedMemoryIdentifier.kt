@@ -6,5 +6,5 @@ internal data class ImportedMemoryIdentifier(
     val memory: String,
     val module: String,
     val sourceModule: String,
-    val type: MemoryType
-) : Identifier
+    override val type: MemoryType
+) : MemoryIdentifier

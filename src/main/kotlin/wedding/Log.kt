@@ -12,4 +12,8 @@ internal object Log {
     fun i(format: String, vararg params: Any?) {
         println("[INF] " + format.format(*params))
     }
+
+    fun w(format: String, vararg params: Any?) {
+        println("[WRN] " + format.format(*params))
+    }
 }

@@ -14,7 +14,7 @@ import dev.fir3.wedding.input.model.identifier.Identifier
 import dev.fir3.wedding.input.model.identifier.ImportedFunctionIdentifier
 
 internal object IdentifierParser {
-    fun parse(value: String): Identifier {
+    fun parse(value: String): Identifier<*> {
         val components = value.split('.')
         check(components.size == 4)
 
@@ -82,7 +82,7 @@ internal object IdentifierParser {
         }
     }
 
-    fun stringify(identifier: Identifier): String {
+    fun stringify(identifier: Identifier<*>): String {
         val identifierType: String
         val module: String
         val sourceModule: String?

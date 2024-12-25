@@ -20,14 +20,17 @@ private object PathConverter : ValueConverter<Path> {
     override fun valuePattern(): String? = null // TODO
 }
 
-private object RenameConverter : ValueConverter<RenameEntry> {
-    override fun convert(p0: String?): RenameEntry {
+private object RenameConverter : ValueConverter<RenameEntry<*>> {
+    override fun convert(p0: String?): RenameEntry<*> {
         val components = requireNotNull(p0).split(":")
         check(components.size == 2)
 
+        val original = IdentifierParser.parse(components[0])
+        val new = IdentifierParser.parse(components[1])
+
         return RenameEntry(
-            originalIdentifier = IdentifierParser.parse(components[0]),
-            newIdentifier = IdentifierParser.parse(components[1])
+            originalIdentifier = original,
+            newIdentifier = new
         )
     }
 

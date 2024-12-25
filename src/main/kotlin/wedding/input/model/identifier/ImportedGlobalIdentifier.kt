@@ -6,5 +6,5 @@ internal data class ImportedGlobalIdentifier(
     val global: String,
     val module: String,
     val sourceModule: String,
-    val type: GlobalType
-) : Identifier
+    override val type: GlobalType
+) : GlobalIdentifier

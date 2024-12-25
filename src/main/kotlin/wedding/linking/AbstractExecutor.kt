@@ -6,7 +6,7 @@ import java.nio.file.Path
 internal abstract class AbstractExecutor {
     private val inputModulePaths = mutableMapOf<String, Path>()
     private var outputModulePath: Path? = null
-    private val renameEntries = mutableSetOf<RenameEntry>()
+    private val renameEntries = mutableSetOf<RenameEntry<*>>()
 
     fun addInputModulePath(name: String, path: Path): Boolean =
         inputModulePaths.put(name, path) == null
@@ -17,7 +17,8 @@ internal abstract class AbstractExecutor {
         return previousPath
     }
 
-    fun addRenameEntry(entry: RenameEntry): Boolean = renameEntries.add(entry)
+    fun addRenameEntry(entry: RenameEntry<*>): Boolean =
+        renameEntries.add(entry)
 
     fun execute() {
         val inputModulePaths = inputModulePaths
@@ -30,6 +31,6 @@ internal abstract class AbstractExecutor {
     protected abstract fun execute(
         inputModulePaths: Collection<Pair<String, Path>>,
         outputModulePath: Path?,
-        renameEntries: Collection<RenameEntry>
+        renameEntries: Collection<RenameEntry<*>>
     )
 }

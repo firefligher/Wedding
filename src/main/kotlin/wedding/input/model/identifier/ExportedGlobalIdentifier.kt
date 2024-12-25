@@ -5,5 +5,5 @@ import dev.fir3.iwan.io.wasm.models.GlobalType
 internal data class ExportedGlobalIdentifier(
     val global: String,
     val module: String,
-    val type: GlobalType
-) : Identifier
+    override val type: GlobalType
+) : GlobalIdentifier

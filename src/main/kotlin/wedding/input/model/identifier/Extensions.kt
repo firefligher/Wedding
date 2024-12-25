@@ -10,8 +10,10 @@ import dev.fir3.wedding.input.model.memory.DefinedUnlinkedMemory
 import dev.fir3.wedding.input.model.memory.ImportedUnlinkedMemory
 import dev.fir3.wedding.input.model.memory.UnlinkedMemory
 
-internal val UnlinkedFunction.identifier: Identifier? get() = when (this) {
-    is DefinedUnlinkedFunction -> exportName?.let { exportName ->
+// Function
+
+internal val DefinedUnlinkedFunction.identifier: ExportedFunctionIdentifier?
+    get() = exportName?.let { exportName ->
         ExportedFunctionIdentifier(
             function = exportName,
             module = module,
@@ -19,16 +21,24 @@ internal val UnlinkedFunction.identifier: Identifier? get() = when (this) {
         )
     }
 
-    is ImportedUnlinkedFunction -> ImportedFunctionIdentifier(
+internal val ImportedUnlinkedFunction.identifier: ImportedFunctionIdentifier
+    get() = ImportedFunctionIdentifier(
         function = functionName,
         module = module,
         sourceModule = sourceModule,
         type = type
     )
-}
 
-internal val UnlinkedGlobal.identifier: Identifier? get() = when (this) {
-    is DefinedUnlinkedGlobal -> exportName?.let { exportName ->
+internal val UnlinkedFunction.identifier: FunctionIdentifier?
+    get() = when (this) {
+        is DefinedUnlinkedFunction -> identifier
+        is ImportedUnlinkedFunction -> identifier
+    }
+
+// Global
+
+internal val DefinedUnlinkedGlobal.identifier: ExportedGlobalIdentifier?
+    get() = exportName?.let { exportName ->
         ExportedGlobalIdentifier(
             global = exportName,
             module = module,
@@ -36,16 +46,23 @@ internal val UnlinkedGlobal.identifier: Identifier? get() = when (this) {
         )
     }
 
-    is ImportedUnlinkedGlobal -> ImportedGlobalIdentifier(
+internal val ImportedUnlinkedGlobal.identifier: ImportedGlobalIdentifier
+    get() = ImportedGlobalIdentifier(
         global = globalName,
         module = module,
         sourceModule = sourceModule,
         type = type
     )
+
+internal val UnlinkedGlobal.identifier: GlobalIdentifier? get() = when (this) {
+    is DefinedUnlinkedGlobal -> identifier
+    is ImportedUnlinkedGlobal -> identifier
 }
 
-internal val UnlinkedMemory.identifier: Identifier? get() = when (this) {
-    is DefinedUnlinkedMemory -> exportName?.let { exportName ->
+// Memory
+
+internal val DefinedUnlinkedMemory.identifier: ExportedMemoryIdentifier?
+    get() = exportName?.let { exportName ->
         ExportedMemoryIdentifier(
             memory = exportName,
             module = module,
@@ -53,10 +70,15 @@ internal val UnlinkedMemory.identifier: Identifier? get() = when (this) {
         )
     }
 
-    is ImportedUnlinkedMemory -> ImportedMemoryIdentifier(
+internal val ImportedUnlinkedMemory.identifier: ImportedMemoryIdentifier
+    get() = ImportedMemoryIdentifier(
         memory = memoryName,
         module = module,
         sourceModule = sourceModule,
         type = type
     )
+
+internal val UnlinkedMemory.identifier: MemoryIdentifier? get() = when (this) {
+    is DefinedUnlinkedMemory -> identifier
+    is ImportedUnlinkedMemory -> identifier
 }
