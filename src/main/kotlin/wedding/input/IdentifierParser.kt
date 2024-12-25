@@ -137,7 +137,7 @@ internal object IdentifierParser {
         return if (sourceModule == null) {
             "$identifierType.$module.$objectName.$objectType"
         } else {
-            "$identifierType.$module.$sourceModule.$objectName.$objectType"
+            "$identifierType.$module@$sourceModule.$objectName.$objectType"
         }
     }
 }

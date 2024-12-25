@@ -5,6 +5,10 @@ internal object Log {
         println("[DBG] " + format.format(*params))
     }
 
+    fun e(format: String, vararg params: Any?) {
+        println("[ERR] " + format.format(*params))
+    }
+
     fun i(format: String, vararg params: Any?) {
         println("[INF] " + format.format(*params))
     }

@@ -1,6 +1,7 @@
 package dev.fir3.wedding
 
 import dev.fir3.wedding.external.withPathConverter
+import dev.fir3.wedding.external.withRenameConverter
 import dev.fir3.wedding.linking.IdentifierPrintingExecutor
 import dev.fir3.wedding.linking.LinkingExecutor
 import joptsimple.OptionParser
@@ -30,6 +31,7 @@ fun main(args: Array<String>) {
             "Renames the corresponding symbol."
         )
         .withRequiredArg()
+        .withRenameConverter()
 
     val optSourceNames = parser
         .acceptsAll(
@@ -56,6 +58,7 @@ fun main(args: Array<String>) {
     }
 
     val outputPath = optOutputPath.value(options)
+    val renamings = optRename.values(options)
     val sourceNames = optSourceNames.values(options)
     val sourcePaths = optSourcePaths.values(options)
 
@@ -72,6 +75,11 @@ fun main(args: Array<String>) {
     for ((name, path) in sourceNames.zip(sourcePaths)) {
         val isDuplicate = !executor.addInputModulePath(name, path)
         if (isDuplicate) TODO("We need some logger or something.")
+    }
+
+    for (renaming in renamings) {
+        val isDuplicate = !executor.addRenameEntry(renaming)
+        if (isDuplicate) TODO()
     }
 
     executor.execute()

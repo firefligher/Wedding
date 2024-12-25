@@ -9,6 +9,7 @@ import dev.fir3.wedding.input.loader.FunctionLoader
 import dev.fir3.wedding.input.loader.GlobalLoader
 import dev.fir3.wedding.input.loader.MemoryLoader
 import dev.fir3.wedding.input.model.MutableInputContainer
+import dev.fir3.wedding.input.model.RenameEntry
 import dev.fir3.wedding.input.model.identifier.identifier
 import dev.fir3.wedding.linking.model.NamedModule
 import java.io.IOException
@@ -19,7 +20,8 @@ import java.nio.file.StandardOpenOption
 internal class IdentifierPrintingExecutor : AbstractExecutor() {
     override fun execute(
         inputModulePaths: Collection<Pair<String, Path>>,
-        outputModulePath: Path?
+        outputModulePath: Path?,
+        renameEntries: Collection<RenameEntry>
     ) {
         // Deserialize the WebAssembly modules
 

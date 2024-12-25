@@ -4,11 +4,15 @@ import dev.fir3.iwan.io.sink.OutputStreamByteSink
 import dev.fir3.iwan.io.source.InputStreamByteSource
 import dev.fir3.iwan.io.wasm.BinaryFormat
 import dev.fir3.iwan.io.wasm.models.Module
+import dev.fir3.wedding.Log
+import dev.fir3.wedding.input.IdentifierParser
 import dev.fir3.wedding.input.loader.DataLoader
 import dev.fir3.wedding.input.loader.FunctionLoader
 import dev.fir3.wedding.input.loader.GlobalLoader
 import dev.fir3.wedding.input.loader.MemoryLoader
 import dev.fir3.wedding.input.model.MutableInputContainer
+import dev.fir3.wedding.input.model.RenameEntry
+import dev.fir3.wedding.input.model.isValid
 import dev.fir3.wedding.linking.model.MutableRelocationContainer
 import dev.fir3.wedding.linking.model.NamedModule
 import dev.fir3.wedding.linking.relocator.DataRelocator
@@ -24,6 +28,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import kotlin.system.exitProcess
 
 internal class LinkingExecutor : AbstractExecutor() {
     companion object {
@@ -32,8 +37,29 @@ internal class LinkingExecutor : AbstractExecutor() {
 
     override fun execute(
         inputModulePaths: Collection<Pair<String, Path>>,
-        outputModulePath: Path?
+        outputModulePath: Path?,
+        renameEntries: Collection<RenameEntry>
     ) {
+        // Rename entry validation.
+
+        var isValid = true
+
+        for (renameEntry in renameEntries) {
+            if (!renameEntry.isValid) {
+                Log.e(
+                    "Encountered invalid renaming operation: '%s' to '%s'",
+                    IdentifierParser.stringify(renameEntry.originalIdentifier),
+                    IdentifierParser.stringify(renameEntry.newIdentifier)
+                )
+
+                isValid = false
+            }
+        }
+
+        if (!isValid) {
+            exitProcess(1)
+        }
+
         // Deserialize the WebAssembly modules
 
         val inputModules = inputModulePaths.map { (name, path) ->
