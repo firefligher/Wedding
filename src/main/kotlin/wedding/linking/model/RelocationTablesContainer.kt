@@ -5,4 +5,5 @@ internal interface RelocationTablesContainer {
     val functionRelocations: RelocationTable
     val globalRelocations: RelocationTable
     val memoryRelocations: RelocationTable
+    val tableRelocations: RelocationTable
 }

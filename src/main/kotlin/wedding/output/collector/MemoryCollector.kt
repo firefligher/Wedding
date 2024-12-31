@@ -28,7 +28,7 @@ internal object MemoryCollector : Collector {
             }
 
             memory.exportName?.let { exportName ->
-                Log.d("Exporting memory $exportName")
+                Log.d("Exporting memory", exportName)
 
                 destination.exports += MemoryExport(
                     name = exportName,

@@ -4,10 +4,12 @@ import dev.fir3.iwan.io.source.InputStreamByteSource
 import dev.fir3.iwan.io.wasm.BinaryFormat
 import dev.fir3.wedding.Log
 import dev.fir3.wedding.input.IdentifierParser
+import dev.fir3.wedding.input.loader.*
 import dev.fir3.wedding.input.loader.DataLoader
 import dev.fir3.wedding.input.loader.FunctionLoader
 import dev.fir3.wedding.input.loader.GlobalLoader
 import dev.fir3.wedding.input.loader.MemoryLoader
+import dev.fir3.wedding.input.loader.TableLoader
 import dev.fir3.wedding.input.model.MutableInputContainer
 import dev.fir3.wedding.input.model.RenameEntry
 import dev.fir3.wedding.input.model.identifier.identifier
@@ -51,6 +53,7 @@ internal class IdentifierPrintingExecutor : AbstractExecutor() {
         FunctionLoader.load(inputModules, inputContainer.functions)
         GlobalLoader.load(inputModules, inputContainer.globals)
         MemoryLoader.load(inputModules, inputContainer.memories)
+        TableLoader.load(inputModules, inputContainer.tables)
 
         for (function in inputContainer.functions) {
             function.identifier?.let { identifier ->
