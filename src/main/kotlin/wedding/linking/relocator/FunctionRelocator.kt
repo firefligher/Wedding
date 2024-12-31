@@ -1,5 +1,6 @@
 package dev.fir3.wedding.linking.relocator
 
+import dev.fir3.iwan.io.wasm.models.FunctionType
 import dev.fir3.wedding.input.model.function.DefinedUnlinkedFunction
 import dev.fir3.wedding.input.model.function.ImportedUnlinkedFunction
 import dev.fir3.wedding.input.model.function.UnlinkedFunction
@@ -8,6 +9,7 @@ import dev.fir3.wedding.linking.model.function.ImportedRelocatedFunction
 import dev.fir3.wedding.linking.model.function.RelocatedFunction
 
 internal object FunctionRelocator : AbstractExportableRelocator<
+        FunctionType,
         UnlinkedFunction,
         DefinedUnlinkedFunction,
         ImportedUnlinkedFunction,

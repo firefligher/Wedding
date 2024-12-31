@@ -1,5 +1,6 @@
 package dev.fir3.wedding.linking.relocator
 
+import dev.fir3.iwan.io.wasm.models.GlobalType
 import dev.fir3.wedding.input.model.global.DefinedUnlinkedGlobal
 import dev.fir3.wedding.input.model.global.ImportedUnlinkedGlobal
 import dev.fir3.wedding.input.model.global.UnlinkedGlobal
@@ -8,6 +9,7 @@ import dev.fir3.wedding.linking.model.global.ImportedRelocatedGlobal
 import dev.fir3.wedding.linking.model.global.RelocatedGlobal
 
 internal object GlobalRelocator : AbstractExportableRelocator<
+        GlobalType,
         UnlinkedGlobal,
         DefinedUnlinkedGlobal,
         ImportedUnlinkedGlobal,

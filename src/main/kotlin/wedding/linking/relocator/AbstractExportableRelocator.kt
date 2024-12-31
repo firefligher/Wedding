@@ -8,10 +8,11 @@ import kotlin.reflect.cast
 import kotlin.reflect.safeCast
 
 internal abstract class AbstractExportableRelocator<
-        TInputElement : Exportable,
+        TExportableType,
+        TInputElement : Exportable<TExportableType>,
         TInputDefinition : TInputElement,
         TInputImport : TInputElement,
-        TOutputElement : Exportable,
+        TOutputElement : Exportable<TExportableType>,
 >(
     private val inputDefinitionClass: KClass<TInputDefinition>,
     private val inputImportClass: KClass<TInputImport>

@@ -1,5 +1,6 @@
 package dev.fir3.wedding.linking.relocator
 
+import dev.fir3.iwan.io.wasm.models.MemoryType
 import dev.fir3.wedding.input.model.memory.DefinedUnlinkedMemory
 import dev.fir3.wedding.input.model.memory.ImportedUnlinkedMemory
 import dev.fir3.wedding.input.model.memory.UnlinkedMemory
@@ -8,6 +9,7 @@ import dev.fir3.wedding.linking.model.memory.ImportedRelocatedMemory
 import dev.fir3.wedding.linking.model.memory.RelocatedMemory
 
 internal object MemoryRelocator : AbstractExportableRelocator<
+        MemoryType,
         UnlinkedMemory,
         DefinedUnlinkedMemory,
         ImportedUnlinkedMemory,
