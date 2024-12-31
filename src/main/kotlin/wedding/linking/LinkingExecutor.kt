@@ -70,6 +70,7 @@ internal class LinkingExecutor : AbstractExecutor() {
         val inputContainer = MutableInputContainer()
 
         DataLoader.load(inputModules, inputContainer.datas)
+        ElementLoader.load(inputModules, inputContainer.elements)
         FunctionLoader.load(inputModules, inputContainer.functions)
         GlobalLoader.load(inputModules, inputContainer.globals)
         MemoryLoader.load(inputModules, inputContainer.memories)
@@ -92,6 +93,13 @@ internal class LinkingExecutor : AbstractExecutor() {
             relocationContainer.dataRelocations,
             inputContainer.datas,
             relocationContainer.datas,
+            OUTPUT_MODULE_NAME
+        )
+
+        ElementRelocator.relocate(
+            relocationContainer.elementRelocations,
+            inputContainer.elements,
+            relocationContainer.elements,
             OUTPUT_MODULE_NAME
         )
 
@@ -132,6 +140,7 @@ internal class LinkingExecutor : AbstractExecutor() {
         val outputContainer = MutableOutputContainer()
 
         DataCollector.collect(relocationContainer, outputContainer)
+        ElementCollector.collect(relocationContainer, outputContainer)
         FunctionCollector.collect(relocationContainer, outputContainer)
         GlobalCollector.collect(relocationContainer, outputContainer)
         MemoryCollector.collect(relocationContainer, outputContainer)

@@ -1,6 +1,7 @@
 package dev.fir3.wedding.linking.model
 
 import dev.fir3.wedding.linking.model.data.RelocatedData
+import dev.fir3.wedding.linking.model.element.RelocatedElement
 import dev.fir3.wedding.linking.model.function.RelocatedFunction
 import dev.fir3.wedding.linking.model.global.RelocatedGlobal
 import dev.fir3.wedding.linking.model.memory.RelocatedMemory
@@ -9,6 +10,10 @@ import dev.fir3.wedding.linking.model.table.RelocatedTable
 internal data class MutableRelocationContainer(
     override val datas: MutableSet<RelocatedData> = mutableSetOf(),
     override val dataRelocations: MutableRelocationTable =
+        MutableRelocationTable(),
+
+    override val elements: MutableSet<RelocatedElement> = mutableSetOf(),
+    override val elementRelocations: MutableRelocationTable =
         MutableRelocationTable(),
 
     override val functions: MutableSet<RelocatedFunction> = mutableSetOf(),

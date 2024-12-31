@@ -50,6 +50,7 @@ internal class IdentifierPrintingExecutor : AbstractExecutor() {
         val inputContainer = MutableInputContainer()
 
         DataLoader.load(inputModules, inputContainer.datas)
+        ElementLoader.load(inputModules, inputContainer.elements)
         FunctionLoader.load(inputModules, inputContainer.functions)
         GlobalLoader.load(inputModules, inputContainer.globals)
         MemoryLoader.load(inputModules, inputContainer.memories)

@@ -3,7 +3,7 @@ package dev.fir3.wedding.common.model
 /**
  * Some information of a WebAssembly module that is associated with an index.
  */
-internal interface Indexed {
+internal sealed interface Indexed {
     /**
      * The index of this information.
      */
