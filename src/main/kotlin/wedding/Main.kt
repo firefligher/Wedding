@@ -1,7 +1,10 @@
 package dev.fir3.wedding
 
+import dev.fir3.wedding.external.withIdentifierConverter
 import dev.fir3.wedding.external.withPathConverter
 import dev.fir3.wedding.external.withRenameConverter
+import dev.fir3.wedding.input.model.identifier.ExportedGlobalIdentifier
+import dev.fir3.wedding.input.model.identifier.GlobalIdentifier
 import dev.fir3.wedding.linking.IdentifierPrintingExecutor
 import dev.fir3.wedding.linking.LinkingExecutor
 import joptsimple.OptionParser
@@ -12,7 +15,16 @@ fun main(args: Array<String>) {
 
     // Initialize the CLI parser
 
+    val optDefineGlobal = parser
+        .accepts(
+            "define-global",
+            "Defines an exported global and corresponding accessors."
+        )
+        .withRequiredArg()
+        .withIdentifierConverter()
+
     val optHelp = parser.acceptsAll(listOf("h", "help"), "Shows this help.")
+
     val optOutputPath = parser
         .acceptsAll(
             listOf("o", "output"),
@@ -48,6 +60,14 @@ fun main(args: Array<String>) {
         .withRequiredArg()
         .withPathConverter()
 
+    val optWrapGlobal = parser
+        .accepts(
+            "wrap-global",
+            "Defines accessors for some exported or imported global."
+        )
+        .withRequiredArg()
+        .withIdentifierConverter()
+
     // Parse the command-line arguments
 
     val options = parser.parse(*args)
@@ -57,10 +77,12 @@ fun main(args: Array<String>) {
         return
     }
 
+    val definedGlobals = optDefineGlobal.values(options)
     val outputPath = optOutputPath.value(options)
     val renamings = optRename.values(options)
     val sourceNames = optSourceNames.values(options)
     val sourcePaths = optSourcePaths.values(options)
+    val wrappedGlobals = optWrapGlobal.values(options)
 
     // Build and run the executor.
 
@@ -80,6 +102,14 @@ fun main(args: Array<String>) {
     for (renaming in renamings) {
         val isDuplicate = !executor.addRenameEntry(renaming)
         if (isDuplicate) TODO()
+    }
+
+    definedGlobals.forEach {
+        executor.defineGlobal(it as ExportedGlobalIdentifier)
+    }
+
+    wrappedGlobals.forEach {
+        executor.wrapGlobal(it as GlobalIdentifier)
     }
 
     executor.execute()

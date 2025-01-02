@@ -12,6 +12,8 @@ import dev.fir3.wedding.input.loader.MemoryLoader
 import dev.fir3.wedding.input.loader.TableLoader
 import dev.fir3.wedding.input.model.MutableInputContainer
 import dev.fir3.wedding.input.model.RenameEntry
+import dev.fir3.wedding.input.model.identifier.ExportedGlobalIdentifier
+import dev.fir3.wedding.input.model.identifier.GlobalIdentifier
 import dev.fir3.wedding.input.model.identifier.identifier
 import dev.fir3.wedding.linking.model.NamedModule
 import java.io.IOException
@@ -23,7 +25,9 @@ internal class IdentifierPrintingExecutor : AbstractExecutor() {
     override fun execute(
         inputModulePaths: Collection<Pair<String, Path>>,
         outputModulePath: Path?,
-        renameEntries: Collection<RenameEntry<*>>
+        renameEntries: Collection<RenameEntry<*>>,
+        definedGlobals: Collection<ExportedGlobalIdentifier>,
+        wrappedGlobals: Collection<GlobalIdentifier>
     ) {
         // Deserialize the WebAssembly modules
 

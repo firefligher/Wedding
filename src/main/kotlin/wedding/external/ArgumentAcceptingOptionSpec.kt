@@ -2,10 +2,14 @@ package dev.fir3.wedding.external
 
 import dev.fir3.wedding.input.IdentifierParser
 import dev.fir3.wedding.input.model.RenameEntry
+import dev.fir3.wedding.input.model.identifier.Identifier
 import joptsimple.ArgumentAcceptingOptionSpec
 import joptsimple.ValueConverter
 import java.nio.file.Path
 import java.nio.file.Paths
+
+internal fun ArgumentAcceptingOptionSpec<*>.withIdentifierConverter() =
+    withValuesConvertedBy(IdentifierConverter)
 
 internal fun ArgumentAcceptingOptionSpec<*>.withPathConverter() =
     withValuesConvertedBy(PathConverter)
@@ -13,6 +17,13 @@ internal fun ArgumentAcceptingOptionSpec<*>.withPathConverter() =
 internal fun ArgumentAcceptingOptionSpec<*>.withRenameConverter() =
     withValuesConvertedBy(RenameConverter)
 
+private object IdentifierConverter : ValueConverter<Identifier<*>> {
+    override fun convert(p0: String?) =
+        IdentifierParser.parse(requireNotNull(p0))
+
+    override fun valueType() = Identifier::class.java
+    override fun valuePattern() = null
+}
 
 private object PathConverter : ValueConverter<Path> {
     override fun convert(p0: String?): Path = Paths.get(requireNotNull(p0))

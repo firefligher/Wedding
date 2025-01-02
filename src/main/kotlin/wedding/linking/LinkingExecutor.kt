@@ -3,32 +3,27 @@ package dev.fir3.wedding.linking
 import dev.fir3.iwan.io.sink.OutputStreamByteSink
 import dev.fir3.iwan.io.source.InputStreamByteSource
 import dev.fir3.iwan.io.wasm.BinaryFormat
+import dev.fir3.iwan.io.wasm.models.Expression
+import dev.fir3.iwan.io.wasm.models.FunctionType
 import dev.fir3.iwan.io.wasm.models.Module
+import dev.fir3.iwan.io.wasm.models.instructions.*
+import dev.fir3.iwan.io.wasm.models.valueTypes.NumberType
+import dev.fir3.iwan.io.wasm.models.valueTypes.ReferenceType
+import dev.fir3.iwan.io.wasm.models.valueTypes.VectorType
 import dev.fir3.wedding.input.loader.*
-import dev.fir3.wedding.input.loader.DataLoader
-import dev.fir3.wedding.input.loader.FunctionLoader
-import dev.fir3.wedding.input.loader.GlobalLoader
-import dev.fir3.wedding.input.loader.MemoryLoader
 import dev.fir3.wedding.input.model.MutableInputContainer
 import dev.fir3.wedding.input.model.RenameEntry
+import dev.fir3.wedding.input.model.function.DefinedUnlinkedFunction
+import dev.fir3.wedding.input.model.global.DefinedUnlinkedGlobal
+import dev.fir3.wedding.input.model.identifier.ExportedGlobalIdentifier
+import dev.fir3.wedding.input.model.identifier.GlobalIdentifier
 import dev.fir3.wedding.input.model.identifier.Identifier
+import dev.fir3.wedding.input.model.identifier.ImportedGlobalIdentifier
 import dev.fir3.wedding.linking.model.MutableRelocationContainer
 import dev.fir3.wedding.linking.model.NamedModule
 import dev.fir3.wedding.linking.relocator.*
-import dev.fir3.wedding.linking.relocator.DataRelocator
-import dev.fir3.wedding.linking.relocator.FunctionRelocator
-import dev.fir3.wedding.linking.relocator.GlobalRelocator
-import dev.fir3.wedding.linking.relocator.MemoryRelocator
 import dev.fir3.wedding.linking.renamer.*
-import dev.fir3.wedding.linking.renamer.AbstractRenamer
-import dev.fir3.wedding.linking.renamer.ExportedFunctionRenamer
-import dev.fir3.wedding.linking.renamer.ExportedGlobalRenamer
-import dev.fir3.wedding.linking.renamer.ExportedMemoryRenamer
 import dev.fir3.wedding.output.collector.*
-import dev.fir3.wedding.output.collector.DataCollector
-import dev.fir3.wedding.output.collector.FunctionCollector
-import dev.fir3.wedding.output.collector.GlobalCollector
-import dev.fir3.wedding.output.collector.MemoryCollector
 import dev.fir3.wedding.output.model.MutableOutputContainer
 import java.io.IOException
 import java.nio.file.Files
@@ -43,7 +38,9 @@ internal class LinkingExecutor : AbstractExecutor() {
     override fun execute(
         inputModulePaths: Collection<Pair<String, Path>>,
         outputModulePath: Path?,
-        renameEntries: Collection<RenameEntry<*>>
+        renameEntries: Collection<RenameEntry<*>>,
+        definedGlobals: Collection<ExportedGlobalIdentifier>,
+        wrappedGlobals: Collection<GlobalIdentifier>
     ) {
         // Deserialize the WebAssembly modules
 
@@ -84,6 +81,109 @@ internal class LinkingExecutor : AbstractExecutor() {
         ImportedFunctionRenamer.apply(inputContainer, renameEntries)
         ImportedGlobalRenamer.apply(inputContainer, renameEntries)
         ImportedMemoryRenamer.apply(inputContainer, renameEntries)
+
+        // Define globals and global wrappers
+
+        definedGlobals.forEach { global ->
+            val index = inputContainer.globals.size.toUInt()
+
+            inputContainer.globals += DefinedUnlinkedGlobal(
+                exportName = global.global,
+                index = index,
+                initializer = when (global.type.valueType) {
+                    NumberType.Float32 -> Expression(listOf(Float32ConstInstruction(0.0F)))
+                    NumberType.Float64 -> Expression(listOf(Float64ConstInstruction(0.0)))
+                    NumberType.Int32 -> Expression(listOf(Int32ConstInstruction(0)))
+                    NumberType.Int64 -> Expression(listOf(Int64ConstInstruction(0)))
+                    ReferenceType.ExternalReference -> TODO()
+                    ReferenceType.FunctionReference -> TODO()
+                    VectorType.Vector128 -> TODO()
+                },
+                module = global.module,
+                type = global.type
+            )
+
+            if (global.type.isMutable) {
+                inputContainer.functions += DefinedUnlinkedFunction(
+                    exportName = global.global + "_SET",
+                    expression = Expression(
+                        listOf(
+                            LocalGetInstruction(0u),
+                            GlobalSetInstruction(index)
+                        )
+                    ),
+                    index = inputContainer.functions.size.toUInt(),
+                    isStart = false,
+                    locals = emptyList(),
+                    module = global.module,
+                    type = FunctionType(
+                        parameterTypes = listOf(global.type.valueType),
+                        resultTypes = emptyList()
+                    )
+                )
+            }
+
+            inputContainer.functions += DefinedUnlinkedFunction(
+                exportName = global.global + "_GET",
+                expression = Expression(
+                    listOf(GlobalGetInstruction(index))
+                ),
+                index = inputContainer.functions.size.toUInt(),
+                isStart = false,
+                locals = emptyList(),
+                module = global.module,
+                type = FunctionType(
+                    parameterTypes = emptyList(),
+                    resultTypes = listOf(global.type.valueType)
+                )
+            )
+        }
+
+        wrappedGlobals.forEach { global ->
+            val (module, name) = when (global) {
+                is ExportedGlobalIdentifier -> Pair(global.module, global.global)
+                is ImportedGlobalIdentifier -> Pair(global.sourceModule, global.global)
+            }
+
+            val index = inputContainer.globals.single { entry ->
+                entry.exportName == name && entry.module == module
+            }.index
+
+            if (global.type.isMutable) {
+                inputContainer.functions += DefinedUnlinkedFunction(
+                    exportName = name + "_SET",
+                    expression = Expression(
+                        listOf(
+                            LocalGetInstruction(0u),
+                            GlobalSetInstruction(index)
+                        )
+                    ),
+                    index = inputContainer.functions.size.toUInt(),
+                    isStart = false,
+                    locals = emptyList(),
+                    module = module,
+                    type = FunctionType(
+                        parameterTypes = listOf(global.type.valueType),
+                        resultTypes = emptyList()
+                    )
+                )
+            }
+
+            inputContainer.functions += DefinedUnlinkedFunction(
+                exportName = name + "_GET",
+                expression = Expression(
+                    listOf(GlobalGetInstruction(index))
+                ),
+                index = inputContainer.functions.size.toUInt(),
+                isStart = false,
+                locals = emptyList(),
+                module = module,
+                type = FunctionType(
+                    parameterTypes = emptyList(),
+                    resultTypes = listOf(global.type.valueType)
+                )
+            )
+        }
 
         // Reassign indices and link imports with exports, if possible.
 
