@@ -11,6 +11,19 @@ data class FunctionImport(
     val typeIndex: UInt
 ) : Import
 
+data class GlobalImport(
+    val isMutable: Boolean,
+    override val module: String,
+    override val name: String,
+    val type: ValueType
+) : Import
+
+data class MemoryImport(
+    val limits: Limits,
+    override val module: String,
+    override val name: String
+): Import
+
 data class TableImport(
     override val module: String,
     override val name: String,
