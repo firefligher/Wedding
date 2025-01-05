@@ -42,6 +42,10 @@ fun ByteSource.readFloat64(): Double {
     return Double.fromBits(longValue)
 }
 
+fun ByteSource.readInt8Vector(): ByteArray {
+    TODO()
+}
+
 @Throws(IOException::class)
 fun ByteSource.readName(): String {
     val nameSize = readVarUInt32()

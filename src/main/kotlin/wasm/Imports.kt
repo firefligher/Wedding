@@ -27,5 +27,5 @@ data class MemoryImport(
 data class TableImport(
     override val module: String,
     override val name: String,
-    val tableType: TableType
+    val type: TableType
 ) : Import

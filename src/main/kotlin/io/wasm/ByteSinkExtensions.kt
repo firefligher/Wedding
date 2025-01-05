@@ -15,6 +15,11 @@ internal fun ByteSink.writeFloat64(value: Double) {
 }
 
 @Throws(IOException::class)
+internal fun ByteSink.writeInt8Vector(value: ByteArray) {
+    TODO()
+}
+
+@Throws(IOException::class)
 internal fun ByteSink.writeName(value: String) {
     val bytes = value.encodeToByteArray()
     writeVarUInt32(bytes.size.toUInt())
