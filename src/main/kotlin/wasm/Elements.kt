@@ -8,7 +8,7 @@ sealed interface Element {
 data class ActiveElement(
     override val initializers: List<List<Instruction>>,
     val offset: List<Instruction>,
-    val table: UInt,
+    val tableIndex: UInt,
     override val type: ReferenceType
 ): Element
 
