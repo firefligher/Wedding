@@ -12,6 +12,7 @@ import dev.fir3.wedding.linker.merging.*
 import dev.fir3.wedding.linker.pool.*
 import dev.fir3.wedding.linker.relocation.*
 import dev.fir3.wedding.linker.renaming.rename
+import dev.fir3.wedding.linker.renaming.renameImport
 import dev.fir3.wedding.linker.renaming.renameImportModule
 import dev.fir3.wedding.linker.sanity.checkForDuplicateExports
 import dev.fir3.wedding.wasm.Module
@@ -123,7 +124,7 @@ fun main(args: Array<String>) {
             "FStar_data_size"
         )
 
-        pool.rename(
+        pool.renameImport(
             ImportIdentifier(
                 module = "FStar",
                 name = "data_start",
@@ -140,7 +141,7 @@ fun main(args: Array<String>) {
             "Hacl_Hash_MD5_data_size"
         )
 
-        pool.rename(
+        pool.renameImport(
             ImportIdentifier(
                 module = "Hacl_Hash_MD5",
                 name = "data_start",
@@ -157,7 +158,7 @@ fun main(args: Array<String>) {
             "WasmSupport_data_size"
         )
 
-        pool.rename(
+        pool.renameImport(
             ImportIdentifier(
                 module = "WasmSupport",
                 name = "data_start",

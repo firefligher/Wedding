@@ -37,8 +37,11 @@ private fun mergeImports(objects: Collection<Object>, pool: Pool) {
     val imports = mutableMapOf<Pair<String, String>, Object>()
 
     for (`object` in objects) {
-        val importModule = `object`[ImportModule::class]?.name
-        val importName = `object`[ImportName::class]?.name
+        val importModule = `object`[AssignedImportModule::class]?.name
+            ?: `object`[ImportModule::class]?.name
+
+        val importName = `object`[AssignedImportName::class]?.name
+            ?: `object`[ImportName::class]?.name
 
         if (importModule == null || importName == null) continue
 
