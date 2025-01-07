@@ -8,8 +8,19 @@ sealed interface Identifier {
 
 data class ExportIdentifier(
     override val module: String,
-    val name: String
-) : Identifier
+    val names: Set<String>
+) : Identifier {
+    override fun equals(other: Any?): Boolean {
+        if (other !is ExportIdentifier) return false
+        if (other.module != module) return false
+
+        return names.intersect(other.names).isNotEmpty()
+    }
+
+    override fun hashCode(): Int {
+        return module.hashCode()
+    }
+}
 
 data class ImportIdentifier(
     override val module: String,
@@ -38,15 +49,15 @@ fun makeIdentifier(
     annotations: Map<KClass<out Annotation>, Annotation>
 ): Identifier {
     val sourceModule = (annotations[SourceModule::class] as SourceModule).name
-    val sourceName = annotations[AssignedName::class]
-        ?.let { annotation -> annotation as AssignedName }?.name
-        ?: annotations[SourceName::class]
-            ?.let { annotation -> annotation as SourceName }?.name
+    val sourceNames = annotations[AssignedName::class]
+        ?.let { annotation -> setOf((annotation as AssignedName).name) }
+        ?: annotations[SourceNames::class]
+            ?.let { annotation -> annotation as SourceNames }?.names
 
-    if (sourceName != null) {
+    if (sourceNames != null) {
         return ExportIdentifier(
             module = sourceModule,
-            name = sourceName
+            names = sourceNames
         )
     }
 

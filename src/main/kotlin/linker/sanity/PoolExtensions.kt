@@ -12,17 +12,17 @@ fun Pool.checkForDuplicateExports(): Set<DuplicateExport> {
     val duplicates = mutableMapOf<String, MutableSet<Object>>()
 
     for (exportable in exportables) {
-        val name: String? = exportable[AssignedName::class]
-            ?.let(AssignedName::name)
-            ?: exportable[SourceName::class]?.let(SourceName::name)
+        val names = exportable[AssignedName::class]
+            ?.name?.let(::setOf)
+            ?: exportable[SourceNames::class]?.names
 
-        if (name == null) continue
-
-        val removedObject = exports.put(name, exportable)
-        if (removedObject != null) {
-            duplicates
-                .computeIfAbsent(name) { mutableSetOf(removedObject) }
-                .add(exportable)
+        names?.forEach { name ->
+            val removedObject = exports.put(name, exportable)
+            if (removedObject != null) {
+                duplicates
+                    .computeIfAbsent(name) { mutableSetOf(removedObject) }
+                    .add(exportable)
+            }
         }
     }
 

@@ -89,7 +89,7 @@ fun main(args: Array<String>) {
             "WasmSupport.Generated" to moduleWasmSupportGenerated
         )
     ) { pool ->
-        val tab = pool.renameImportModule(
+        pool.renameImportModule(
             ImportIdentifier(
                 module = "WasmSupport",
                 name = "WasmSupport_malloc",
@@ -98,38 +98,74 @@ fun main(args: Array<String>) {
             "WasmSupport.Generated"
         )
 
-        println(tab)
+        pool.renameImportModule(
+            ImportIdentifier(
+                module = "WasmSupport",
+                name = "WasmSupport_trap",
+                sourceModule = "WasmSupport"
+            ),
+            "WasmSupport.Generated"
+        )
     }
 
-    //pool.add("FStar", moduleFStar)
-    //pool.add("Hacl_Hash_MD5", moduleHaclHashMd5)
-    //pool.add("WasmSupport", moduleWasmSupport)
-    //pool.add("WasmSupport", moduleWasmSupportGenerated)
+    val moduleLinked = linkModules(
+        mapOf(
+            "FStar" to moduleFStar,
+            "Hacl_Hash_MD5" to moduleHaclHashMd5,
+            "WasmSupport" to moduleWasmSupportJoined,
+        )
+    ) { pool ->
+        pool.rename(
+            ExportIdentifier(
+                module = "FStar",
+                names = setOf("data_size")
+            ),
+            "FStar_data_size"
+        )
 
-    /*
-    pool.rename(
-        ExportIdentifier(
-            module = "FStar",
-            name = "data_size"
-        ),
-        "FStar_data_size"
-    )
+        pool.rename(
+            ImportIdentifier(
+                module = "FStar",
+                name = "data_start",
+                sourceModule = "Karamel"
+            ),
+            "FStar_data_start"
+        )
 
-    pool.rename(
-        ExportIdentifier(
-            module = "Hacl_Hash_MD5",
-            name = "data_size"
-        ),
-        "Hacl_Hash_MD5_data_size"
-    )
+        pool.rename(
+            ExportIdentifier(
+                module = "Hacl_Hash_MD5",
+                names = setOf("data_size")
+            ),
+            "Hacl_Hash_MD5_data_size"
+        )
 
-    pool.rename(
-        ExportIdentifier(
-            module = "WasmSupport",
-            name = "data_size"
-        ),
-        "WasmSupport_data_size"
-    )*/
+        pool.rename(
+            ImportIdentifier(
+                module = "Hacl_Hash_MD5",
+                name = "data_start",
+                sourceModule = "Karamel"
+            ),
+            "Hacl_Hash_MD5_data_start"
+        )
 
-    writeModule("LINKED.wasm", moduleWasmSupportJoined)
+        pool.rename(
+            ExportIdentifier(
+                module = "WasmSupport",
+                names = setOf("data_size")
+            ),
+            "WasmSupport_data_size"
+        )
+
+        pool.rename(
+            ImportIdentifier(
+                module = "WasmSupport",
+                name = "data_start",
+                sourceModule = "Karamel"
+            ),
+            "WasmSupport_data_start"
+        )
+    }
+
+    writeModule("LINKED.wasm", moduleLinked)
 }

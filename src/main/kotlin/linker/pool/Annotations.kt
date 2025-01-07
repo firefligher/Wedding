@@ -14,7 +14,7 @@ data class SourceIndex(val index: UInt) : Annotation
 // Annotations for exportable objects
 
 data class AssignedName(val name: String) : Annotation
-data class SourceName(val name: String) : Annotation
+data class SourceNames(val names: Set<String>) : Annotation
 
 // Annotations for imports
 

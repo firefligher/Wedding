@@ -12,13 +12,12 @@ fun Pool.link(): Set<Conflict> {
     val objects = functions + tables + memories + globals
 
     for (`object` in objects) {
-        val assignedName = `object`[AssignedName::class]
-            ?.let(AssignedName::name)
-            ?: `object`[SourceName::class]?.let(SourceName::name)
+        val assignedNames = `object`[AssignedName::class]
+            ?.name?.let(::setOf)
+            ?: `object`[SourceNames::class]?.names
 
-        if (assignedName != null) {
+        assignedNames?.forEach { assignedName ->
             val sourceModule = `object`[SourceModule::class]!!.name
-
             exports[Pair(sourceModule, assignedName)] = `object`
         }
 

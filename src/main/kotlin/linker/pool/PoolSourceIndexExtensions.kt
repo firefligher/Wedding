@@ -81,7 +81,9 @@ private fun resolveImportable(
     // Otherwise, the object was resolved and the corresponding object was
     // assigned.
 
-    val importModule = `object`[ImportModule::class]!!.name
+    val importModule = `object`[AssignedImportModule::class]?.name
+        ?: `object`[ImportModule::class]!!.name
+
     val importResolution = `object`[ImportResolution::class]!!.index
 
     return resolveImportable(importModule, importResolution, objects)

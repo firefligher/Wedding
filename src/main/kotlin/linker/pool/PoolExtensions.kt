@@ -150,7 +150,13 @@ fun Pool.add(name: String, module: Module) {
             is TableExport -> tables[export.tableIndex.toInt()].annotations
         }
 
-        annotations[SourceName::class] = SourceName(export.name)
+        annotations.compute(SourceNames::class) { _, annotation ->
+            SourceNames(
+                if (annotation != null) {
+                    (annotation as SourceNames).names + export.name
+                } else setOf(export.name)
+            )
+        }
     }
 
     // Start
@@ -340,10 +346,10 @@ fun Pool.toModule(): Module {
 
     for (function in this.functions) {
         val index = function[RelocatedIndex::class]?.index ?: continue
-        val name = function[AssignedName::class]?.name
-            ?: function[SourceName::class]?.name
+        val names = function[AssignedName::class]?.name?.let(::setOf)
+            ?: function[SourceNames::class]?.names
 
-        if (name != null) {
+        names?.forEach { name ->
             exports += FunctionExport(index, name)
         }
 
@@ -387,10 +393,10 @@ fun Pool.toModule(): Module {
 
     for (global in this.globals) {
         val index = global[RelocatedIndex::class]?.index ?: continue
-        val name = global[AssignedName::class]?.name
-            ?: global[SourceName::class]?.name
+        val names = global[AssignedName::class]?.name?.let(::setOf)
+            ?: global[SourceNames::class]?.names
 
-        if (name != null) {
+        names?.forEach { name ->
             exports += GlobalExport(index, name)
         }
 
@@ -420,10 +426,10 @@ fun Pool.toModule(): Module {
 
     for (memory in this.memories) {
         val index = memory[RelocatedIndex::class]?.index ?: continue
-        val name = memory[AssignedName::class]?.name
-            ?: memory[SourceName::class]?.name
+        val names = memory[AssignedName::class]?.name?.let(::setOf)
+            ?: memory[SourceNames::class]?.names
 
-        if (name != null) {
+        names?.forEach { name ->
             exports += MemoryExport(index, name)
         }
 
@@ -451,11 +457,11 @@ fun Pool.toModule(): Module {
 
     for (table in this.tables) {
         val index = table[RelocatedIndex::class]?.index ?: continue
-        val name = table[AssignedName::class]?.name
-            ?: table[SourceName::class]?.name
+        val names = table[AssignedName::class]?.name?.let(::setOf)
+            ?: table[SourceNames::class]?.names
 
-        if (name != null) {
-            exports += MemoryExport(index, name)
+        names?.forEach { name ->
+            exports += TableExport(name, index)
         }
 
         val (type) = table[TableInfo::class]!!
