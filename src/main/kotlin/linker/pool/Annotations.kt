@@ -20,6 +20,7 @@ data class SourceName(val name: String) : Annotation
 
 data class AssignedImportModule(val name: String) : Annotation
 data class AssignedImportName(val name: String) : Annotation
+data class ImportDuplicate(val module: String, val index: UInt) : Annotation
 data class ImportModule(val name: String) : Annotation
 data class ImportName(val name: String) : Annotation
 data class ImportResolution(val index: UInt) : Annotation

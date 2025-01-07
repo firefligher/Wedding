@@ -8,7 +8,7 @@ import dev.fir3.wedding.linker.fixing.fixElements
 import dev.fir3.wedding.linker.fixing.fixFunctions
 import dev.fir3.wedding.linker.fixing.fixGlobals
 import dev.fir3.wedding.linker.linking.link
-import dev.fir3.wedding.linker.merging.mergeFunctionTypes
+import dev.fir3.wedding.linker.merging.*
 import dev.fir3.wedding.linker.pool.*
 import dev.fir3.wedding.linker.relocation.*
 import dev.fir3.wedding.linker.renaming.rename
@@ -77,7 +77,12 @@ fun main(args: Array<String>) {
         return
     }
 
+    pool.mergeFunctionImports()
     pool.mergeFunctionTypes()
+    pool.mergeGlobalImports()
+    pool.mergeMemoryImports()
+    pool.mergeTableImports()
+
     pool.relocateData()
     pool.relocateElements()
     pool.relocateFunctionTypes()

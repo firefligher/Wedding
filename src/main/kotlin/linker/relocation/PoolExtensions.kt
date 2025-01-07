@@ -40,9 +40,19 @@ private fun relocateImportable(importables: List<Object>) {
     // Collect definitions and assign new indices to the unresolved imports.
 
     for (importable in importables) {
-        val importResolution = importable[ImportResolution::class]?.index
+        // Do not include resolved imports
+
+        val importResolution = importable[ImportResolution::class]
 
         if (importResolution != null) {
+            continue
+        }
+
+        // Do not include duplicate imports
+
+        val importDuplicate = importable[ImportDuplicate::class]
+
+        if (importDuplicate != null) {
             continue
         }
 

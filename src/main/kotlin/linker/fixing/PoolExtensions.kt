@@ -9,7 +9,7 @@ fun Pool.fixDatas(poolSourceIndex: PoolSourceIndex) {
         val sourceModule = data[SourceModule::class]!!.name
 
         data[FixedActiveDataInfo::class] = FixedActiveDataInfo(
-            memoryIndex = poolSourceIndex.resolveDataIndex(
+            memoryIndex = poolSourceIndex.resolveMemoryIndex(
                 sourceModule,
                 activeDataOffset.memoryIndex
             ),

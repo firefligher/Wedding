@@ -55,11 +55,31 @@ private fun resolveImportable(
     objects: Map<Pair<String, UInt>, Object>
 ): UInt {
     val `object` = objects[Pair(sourceModule, sourceIndex)]!!
+
+    // If the object is a definition or an unresolved import (that is no
+    // duplicate), it was relocated and has a new index now.
+
     val relocatedIndex = `object`[RelocatedIndex::class]?.index
 
     if (relocatedIndex != null) {
         return relocatedIndex
     }
+
+    // If the object is an unresolved import, but also a duplicate, the
+    // corresponding import index was associated with the object.
+
+    val importDuplicate = `object`[ImportDuplicate::class]
+
+    if (importDuplicate != null) {
+        return resolveImportable(
+            importDuplicate.module,
+            importDuplicate.index,
+            objects
+        )
+    }
+
+    // Otherwise, the object was resolved and the corresponding object was
+    // assigned.
 
     val importModule = `object`[ImportModule::class]!!.name
     val importResolution = `object`[ImportResolution::class]!!.index
