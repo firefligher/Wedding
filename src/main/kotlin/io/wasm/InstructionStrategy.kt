@@ -360,7 +360,7 @@ object InstructionStrategy : Strategy<Instruction> {
             serialize(sink, 0x41u, instance, ByteSink::writeVarInt32)
 
         is Int64ConstInstruction ->
-            serialize(sink, 0x41u, instance, ByteSink::writeVarInt64)
+            serialize(sink, 0x42u, instance, ByteSink::writeVarInt64)
 
         is DataDropInstruction ->
             serialize(sink, instance.dataIndex, 0xFCu, 0x09u)
