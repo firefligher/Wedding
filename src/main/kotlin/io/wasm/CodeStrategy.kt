@@ -8,7 +8,6 @@ import dev.fir3.wedding.io.serialization.Context
 import dev.fir3.wedding.io.serialization.Strategy
 import dev.fir3.wedding.io.serialization.deserialize
 import dev.fir3.wedding.wasm.Code
-import dev.fir3.wedding.wasm.Instruction
 import dev.fir3.wedding.wasm.ValueType
 
 object CodeStrategy : Strategy<Code> {
@@ -31,7 +30,7 @@ object CodeStrategy : Strategy<Code> {
 
         // Read body
 
-        val body = context.deserializeVector<Instruction>(source)
+        val body = context.deserializeInstructions(source)
         return Code(body, locals)
     }
 
@@ -44,7 +43,7 @@ object CodeStrategy : Strategy<Code> {
                 context.serialize(memorySink, type)
             }
 
-            context.serializeVector(memorySink, instance.body)
+            context.serializeInstructions(memorySink, instance.body)
         }
 
         sink.writeVarUInt32(bodyBytes.size.toUInt())

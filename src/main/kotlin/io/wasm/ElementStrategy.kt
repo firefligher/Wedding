@@ -14,7 +14,7 @@ object ElementStrategy : Strategy<Element> {
         context: Context
     ) = when (val type = source.readVarUInt32()) {
         0u -> {
-            val expression = context.deserializeVector<Instruction>(source)
+            val expression = context.deserializeInstructions(source)
             val functionIndices = source.readVarUInt32Vector()
 
             ActiveElement(
@@ -41,7 +41,7 @@ object ElementStrategy : Strategy<Element> {
 
         2u -> {
             val tableIndex = source.readVarUInt32()
-            val expression = context.deserializeVector<Instruction>(source)
+            val expression = context.deserializeInstructions(source)
             source.expect(0)
             val functionIndices = source.readVarUInt32Vector()
 
@@ -68,12 +68,12 @@ object ElementStrategy : Strategy<Element> {
         }
 
         4u -> {
-            val expression = context.deserializeVector<Instruction>(source)
+            val expression = context.deserializeInstructions(source)
             val expressionsCount = source.readVarUInt32()
             val expressions = mutableListOf<List<Instruction>>()
 
             for (i in 0u until expressionsCount) {
-                expressions.add(context.deserializeVector<Instruction>(source))
+                expressions.add(context.deserializeInstructions(source))
             }
 
             ActiveElement(
@@ -90,7 +90,7 @@ object ElementStrategy : Strategy<Element> {
             val expressions = mutableListOf<List<Instruction>>()
 
             for (i in 0u until expressionsCount) {
-                expressions.add(context.deserialize(source))
+                expressions.add(context.deserializeInstructions(source))
             }
 
             PassiveElement(expressions, referenceType)
@@ -98,13 +98,13 @@ object ElementStrategy : Strategy<Element> {
 
         6u -> {
             val tableIndex = source.readVarUInt32()
-            val expression = context.deserializeVector<Instruction>(source)
+            val expression = context.deserializeInstructions(source)
             val referenceType = context.deserialize<ReferenceType>(source)
             val expressionsCount = source.readVarUInt32()
             val expressions = mutableListOf<List<Instruction>>()
 
             for (i in 0u until expressionsCount) {
-                expressions.add(context.deserializeVector(source))
+                expressions.add(context.deserializeInstructions(source))
             }
 
             ActiveElement(
@@ -121,7 +121,7 @@ object ElementStrategy : Strategy<Element> {
             val expressions = mutableListOf<List<Instruction>>()
 
             for (i in 0u until expressionsCount) {
-                expressions.add(context.deserializeVector<Instruction>(source))
+                expressions.add(context.deserializeInstructions(source))
             }
 
             DeclarativeElement(expressions, referenceType)
@@ -138,7 +138,7 @@ object ElementStrategy : Strategy<Element> {
         context: Context
     ) = when (instance) {
         is ActiveElement -> {
-            val writeTable = instance.table > 0u
+            val writeTable = instance.tableIndex > 0u
             val writeInitializersAsExpressions = instance
                 .initializers
                 .any { e ->
@@ -154,14 +154,14 @@ object ElementStrategy : Strategy<Element> {
             else
                 sink.writeVarUInt32(0u)
 
-            if (writeTable) sink.writeVarUInt32(instance.table)
-            context.serializeVector(sink, instance.offset)
+            if (writeTable) sink.writeVarUInt32(instance.tableIndex)
+            context.serializeInstructions(sink, instance.offset)
             if (writeTable) context.serialize(sink, instance.type)
 
             sink.writeVarUInt32(instance.initializers.size.toUInt())
             instance.initializers.forEach { expression ->
                 if (writeInitializersAsExpressions) {
-                    context.serializeVector(sink, expression)
+                    context.serializeInstructions(sink, expression)
                 } else {
                     val instruction = expression
                         .single() as ReferenceFunctionInstruction
@@ -188,7 +188,7 @@ object ElementStrategy : Strategy<Element> {
             sink.writeVarUInt32(instance.initializers.size.toUInt())
             instance.initializers.forEach { expression ->
                 if (writeInitializersAsExpressions) {
-                    context.serializeVector(sink, expression)
+                    context.serializeInstructions(sink, expression)
                 } else {
                     val instruction = expression
                         .single() as ReferenceFunctionInstruction
@@ -214,7 +214,7 @@ object ElementStrategy : Strategy<Element> {
             sink.writeVarUInt32(instance.initializers.size.toUInt())
             instance.initializers.forEach { expression ->
                 if (writeInitializersAsExpressions) {
-                    context.serializeVector(sink, expression)
+                    context.serializeInstructions(sink, expression)
                 } else {
                     val instruction = expression
                         .single() as ReferenceFunctionInstruction

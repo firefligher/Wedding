@@ -8,14 +8,13 @@ import dev.fir3.wedding.io.serialization.Context
 import dev.fir3.wedding.io.serialization.Strategy
 import dev.fir3.wedding.io.serialization.deserialize
 import dev.fir3.wedding.wasm.Global
-import dev.fir3.wedding.wasm.Instruction
 import dev.fir3.wedding.wasm.ValueType
 
 object GlobalStrategy : Strategy<Global> {
     override fun deserialize(source: ByteSource, context: Context): Global {
         val type = context.deserialize<ValueType>(source)
         val isMutable = source.readInt8() == 1.toByte()
-        val initializer = context.deserializeVector<Instruction>(source)
+        val initializer = context.deserializeInstructions(source)
 
         return Global(
             initializer = initializer,
@@ -35,6 +34,6 @@ object GlobalStrategy : Strategy<Global> {
             else 0
         )
 
-        context.serializeVector(sink, instance.initializer)
+        context.serializeInstructions(sink, instance.initializer)
     }
 }

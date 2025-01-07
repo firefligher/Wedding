@@ -24,6 +24,9 @@ data class LoopInstruction(
     val body: List<Instruction>
 ) : BlockTypeInstruction
 
+data object ElseInstruction : Instruction
+data object EndInstruction : Instruction
+
 // Branch Instructions
 
 data class ConditionalBranchInstruction(

@@ -3,9 +3,10 @@ package dev.fir3.wedding.linker.fixing
 import dev.fir3.wedding.linker.pool.*
 import dev.fir3.wedding.wasm.*
 
-fun Pool.fixDatas(sourceModule: String, poolSourceIndex: PoolSourceIndex) {
+fun Pool.fixDatas(poolSourceIndex: PoolSourceIndex) {
     for (data in datas) {
         val activeDataOffset = data[ActiveDataInfo::class] ?: continue
+        val sourceModule = data[SourceModule::class]!!.name
 
         data[FixedActiveDataInfo::class] = FixedActiveDataInfo(
             memoryIndex = poolSourceIndex.resolveDataIndex(
@@ -21,9 +22,10 @@ fun Pool.fixDatas(sourceModule: String, poolSourceIndex: PoolSourceIndex) {
     }
 }
 
-fun Pool.fixElements(sourceModule: String, poolSourceIndex: PoolSourceIndex) {
+fun Pool.fixElements(poolSourceIndex: PoolSourceIndex) {
     for (element in elements) {
         val initializers = element[ElementInfo::class]!!.initializers
+        val sourceModule = element[SourceModule::class]!!.name
 
         element[FixedElementInitializers::class] = FixedElementInitializers(
             initializers.map { initializer ->
@@ -47,9 +49,10 @@ fun Pool.fixElements(sourceModule: String, poolSourceIndex: PoolSourceIndex) {
     }
 }
 
-fun Pool.fixFunctions(sourceModule: String, poolSourceIndex: PoolSourceIndex) {
+fun Pool.fixFunctions(poolSourceIndex: PoolSourceIndex) {
     for (function in functions) {
         val typeIndex = function[FunctionTypeIndex::class]!!.typeIndex
+        val sourceModule = function[SourceModule::class]!!.name
 
         function[FixedFunctionTypeIndex::class] = FixedFunctionTypeIndex(
             poolSourceIndex.resolveFunctionTypeIndex(
@@ -72,10 +75,12 @@ fun Pool.fixFunctions(sourceModule: String, poolSourceIndex: PoolSourceIndex) {
     }
 }
 
-fun Pool.fixGlobals(sourceModule: String, poolSourceIndex: PoolSourceIndex) {
+fun Pool.fixGlobals(poolSourceIndex: PoolSourceIndex) {
     for (global in globals) {
         val initializer = global[GlobalInitializer::class]?.instructions
             ?: continue
+
+        val sourceModule = global[SourceModule::class]!!.name
 
         global[FixedGlobalInitializer::class] = FixedGlobalInitializer(
             instructions = fixInstructions(
@@ -123,6 +128,8 @@ private fun fixInstruction(
         type = fixBlockType(instruction.type, sourceModule, poolSourceIndex),
         body = fixInstructions(instruction.body, sourceModule, poolSourceIndex)
     )
+    EndInstruction -> instruction
+    ElseInstruction -> instruction
     is CallIndirectInstruction -> CallIndirectInstruction(
         typeIndex = poolSourceIndex.resolveFunctionTypeIndex(
             sourceModule,

@@ -15,13 +15,12 @@ object InstructionStrategy : Strategy<Instruction> {
     override fun deserialize(
         source: ByteSource,
         context: Context
-    ) = when (val opcode = source.readUInt8().toUInt()) {
+    ): Instruction = when (val opcode = source.readUInt8().toUInt()) {
         0x00u -> UNREACHABLE
         0x01u -> NOP
         0x02u -> {
             val type = context.deserialize<BlockType>(source)
-            val instructions = context.deserializeVector<Instruction>(source)
-            source.expect(0x0B)
+            val instructions = context.deserializeInstructions(source)
 
             BlockInstruction(
                 body = instructions,
@@ -30,8 +29,7 @@ object InstructionStrategy : Strategy<Instruction> {
         }
         0x03u -> {
             val type = context.deserialize<BlockType>(source)
-            val instructions = context.deserializeVector<Instruction>(source)
-            source.expect(0x0B)
+            val instructions = context.deserializeInstructions(source)
 
             LoopInstruction(
                 body = instructions,
@@ -40,16 +38,28 @@ object InstructionStrategy : Strategy<Instruction> {
         }
         0x04u -> {
             val type = context.deserialize<BlockType>(source)
-            val ifBody = context.deserializeVector<Instruction>(source)
-            val indication = source.readUInt8().toUInt()
-            val elseBody: List<Instruction>?
+            val ifBody = mutableListOf<Instruction>()
+            val indication: Instruction
 
-            when (indication) {
-                0x05u -> {
-                    elseBody = context.deserializeVector<Instruction>(source)
-                    source.expect(0x0B)
+            while (true) {
+                val instruction = deserialize(source, context)
+
+                if (instruction == EndInstruction) {
+                    indication = EndInstruction
+                    break
                 }
-                0x0Bu -> elseBody = null
+
+                if (instruction == ElseInstruction) {
+                    indication = ElseInstruction
+                    break
+                }
+
+                ifBody += instruction
+            }
+
+            val elseBody: List<Instruction>? = when (indication) {
+                ElseInstruction -> context.deserializeInstructions(source)
+                EndInstruction -> null
                 else -> throw SerializationException(
                     "Encountered unsupported opcode: $indication"
                 )
@@ -61,6 +71,8 @@ object InstructionStrategy : Strategy<Instruction> {
                 elseBody = elseBody
             )
         }
+        0x05u -> ElseInstruction
+        0x0Bu -> EndInstruction
         0x0Cu -> UnconditionalBranchInstruction(source.readVarUInt32())
         0x0Du -> ConditionalBranchInstruction(source.readVarUInt32())
         0x0Eu -> {
@@ -279,7 +291,9 @@ object InstructionStrategy : Strategy<Instruction> {
         instance: Instruction,
         sink: ByteSink,
         context: Context
-    ) = when (instance) {
+    ): Unit = when (instance) {
+        ElseInstruction -> sink.write(0x05)
+        EndInstruction -> sink.write(0x0B)
         is Float32LoadInstruction -> serialize(sink, 0x2Au, instance)
         is Float32StoreInstruction -> serialize(sink, 0x38u, instance)
         is Float64LoadInstruction -> serialize(sink, 0x2Bu, instance)
@@ -306,26 +320,25 @@ object InstructionStrategy : Strategy<Instruction> {
         is BlockInstruction -> {
             sink.write(0x02)
             context.serialize(sink, instance.type)
-            context.serializeVector(sink, instance.body)
-            sink.write(0x0B)
+            context.serializeInstructions(sink, instance.body)
         }
         is ConditionalBlockInstruction -> {
             sink.write(0x04)
             context.serialize(sink, instance.type)
-            context.serializeVector(sink, instance.ifBody)
 
-            instance.elseBody?.let { elseBody ->
-                sink.write(0x05)
-                context.serializeVector(sink, elseBody)
+            for (instruction in instance.ifBody) {
+                serialize(instruction, sink, context)
             }
 
-            sink.write(0x0B)
+            instance.elseBody?.let { elseBody ->
+                serialize(ElseInstruction, sink, context)
+                context.serializeInstructions(sink, elseBody)
+            } ?: serialize(EndInstruction, sink, context)
         }
         is LoopInstruction -> {
             sink.write(0x03)
             context.serialize(sink, instance.type)
-            context.serializeVector(sink, instance.body)
-            sink.write(0x0B)
+            context.serializeInstructions(sink, instance.body)
         }
         is CallIndirectInstruction -> {
             sink.write(0x11)

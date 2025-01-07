@@ -42,8 +42,9 @@ fun ByteSource.readFloat64(): Double {
     return Double.fromBits(longValue)
 }
 
+@Throws(IOException::class)
 fun ByteSource.readInt8Vector(): ByteArray {
-    TODO()
+    return read(readVarUInt32())
 }
 
 @Throws(IOException::class)
@@ -126,5 +127,12 @@ fun ByteSource.readVarUInt32(): UInt {
 }
 
 fun ByteSource.readVarUInt32Vector(): List<UInt> {
-    TODO()
+    val count = readVarUInt32()
+    val vector = mutableListOf<UInt>()
+
+    repeat(count.toInt()) { index ->
+        vector += readVarUInt32()
+    }
+
+    return vector
 }

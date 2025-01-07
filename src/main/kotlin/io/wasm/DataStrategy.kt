@@ -16,7 +16,7 @@ object DataStrategy : Strategy<Data> {
         context: Context
     ) = when (val type = source.readUInt8().toUInt()) {
         0u -> {
-            val offset = context.deserializeVector<Instruction>(source)
+            val offset = context.deserializeInstructions(source)
             val initializers = source.readInt8Vector()
             ActiveData(initializers, 0u, offset)
         }
@@ -24,7 +24,7 @@ object DataStrategy : Strategy<Data> {
         1u -> PassiveData(source.readInt8Vector())
         2u -> {
             val index = source.readVarUInt32()
-            val offset = context.deserializeVector<Instruction>(source)
+            val offset = context.deserializeInstructions(source)
             val initializers = source.readInt8Vector()
             ActiveData(initializers, index, offset)
         }
@@ -45,7 +45,7 @@ object DataStrategy : Strategy<Data> {
                 sink.write(0)
             }
 
-            context.serialize(sink, instance.offset)
+            context.serializeInstructions(sink, instance.offset)
             sink.writeInt8Vector(instance.initializers)
         }
 

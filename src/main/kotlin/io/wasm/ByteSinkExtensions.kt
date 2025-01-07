@@ -16,7 +16,8 @@ internal fun ByteSink.writeFloat64(value: Double) {
 
 @Throws(IOException::class)
 internal fun ByteSink.writeInt8Vector(value: ByteArray) {
-    TODO()
+    writeVarUInt32(value.size.toUInt())
+    write(*value)
 }
 
 @Throws(IOException::class)
