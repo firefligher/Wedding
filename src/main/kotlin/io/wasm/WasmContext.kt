@@ -18,6 +18,7 @@ object WasmContext : AbstractContext() {
         register(InstructionStrategy)
         register(LimitsStrategy)
         register(ModuleStrategy)
+        register(ReferenceTypeStrategy)
         register(TableTypeStrategy)
         register(ValueTypeStrategy)
     }
