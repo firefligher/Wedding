@@ -63,7 +63,7 @@ fun makeIdentifier(
         return ImportIdentifier(
             module = sourceModule,
             name = importName,
-            sourceModule = sourceModule
+            sourceModule = importModule
         )
     }
 

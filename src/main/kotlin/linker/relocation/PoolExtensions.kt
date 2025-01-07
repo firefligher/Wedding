@@ -46,7 +46,6 @@ private fun relocateImportable(importables: List<Object>) {
             continue
         }
 
-
         val importModule = importable[AssignedImportModule::class]?.name
             ?: importable[ImportModule::class]?.name
 

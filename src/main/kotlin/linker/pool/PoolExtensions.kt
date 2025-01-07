@@ -506,10 +506,11 @@ fun Pool.toModule(): Module {
             .map { (_, global) -> global },
 
         imports = (
-                functionImports + globalImports + memoryImports + tableImports
-        ).toList()
-            .sortedBy { (index, _) -> index }
-            .map { (_, import) -> import },
+                functionImports.entries +
+                        globalImports.entries +
+                        memoryImports.entries +
+                        tableImports.entries
+        ).sortedBy { (index, _) -> index }.map { (_, import) -> import },
 
         memories = memories
             .toList()

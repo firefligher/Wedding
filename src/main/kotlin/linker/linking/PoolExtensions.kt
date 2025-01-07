@@ -5,7 +5,7 @@ import dev.fir3.wedding.linker.pool.Function
 
 fun Pool.link(): Set<Conflict> {
     val exports = mutableMapOf<Pair<String, String>, Object>()
-    val imports = mutableMapOf<Pair<String, String>, Object>()
+    val imports = mutableMapOf<Pair<String, String>, MutableSet<Object>>()
     val conflicts = mutableSetOf<Conflict>()
 
     // Collect imports and exports
@@ -30,27 +30,31 @@ fun Pool.link(): Set<Conflict> {
             ?: `object`[ImportName::class]?.let(ImportName::name)
 
         if (importModule != null && importName != null) {
-            imports[Pair(importModule, importName)] = `object`
+            imports.computeIfAbsent(Pair(importModule, importName)) { _ ->
+                mutableSetOf()
+            } += `object`
         }
     }
 
     // Link imports with exports, if possible.
 
-    for ((identifier, import) in imports) {
+    for ((identifier, importSet) in imports) {
         val export = exports[identifier] ?: continue
 
-        if (!import.isImportCompatibleWith(export, this)) {
-            conflicts += Conflict(
-                export = export.identifier,
-                import = import.identifier
+        for (import in importSet) {
+            if (!import.isImportCompatibleWith(export, this)) {
+                conflicts += Conflict(
+                    export = export.identifier,
+                    import = import.identifier
+                )
+
+                continue
+            }
+
+            import[ImportResolution::class] = ImportResolution(
+                export[SourceIndex::class]!!.index
             )
-
-            continue
         }
-
-        import[ImportResolution::class] = ImportResolution(
-            export[SourceIndex::class]!!.index
-        )
     }
 
     return conflicts

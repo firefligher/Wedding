@@ -39,8 +39,6 @@ fun main(args: Array<String>) {
     pool.add("Hacl_Hash_MD5", moduleHaclHashMd5)
     pool.add("WasmSupport", moduleWasmSupport)
 
-    //val fstarIndex = pool.createSourceIndex()
-
     pool.rename(
         ExportIdentifier(
             module = "FStar",
@@ -94,7 +92,11 @@ fun main(args: Array<String>) {
     pool.fixFunctions(sourceIndex)
     pool.fixGlobals(sourceIndex)
 
-    writeModule("LINKED.wasm", pool.toModule())
+    val moduleLinked = pool.toModule()
 
-    readModule("LINKED.wasm")
+    println(moduleLinked.imports)
+    println(moduleLinked.globals)
+    println(moduleLinked.exports)
+
+    writeModule("LINKED.wasm", moduleLinked)
 }
