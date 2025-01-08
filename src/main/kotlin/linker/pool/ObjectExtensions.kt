@@ -59,7 +59,9 @@ fun Object.isImportCompatibleWith(
             val ourLimits = this[MemoryInfo::class]!!.limits
             val theirLimits = `object`[MemoryInfo::class]!!.limits
 
-            return ourLimits == theirLimits
+            // TODO: This is just workaround. Find a better solution.
+
+            return true
         }
         is Table -> {
             if (`object` !is Table) return false

@@ -15,7 +15,7 @@ import dev.fir3.wedding.linker.renaming.rename
 import dev.fir3.wedding.linker.renaming.renameImport
 import dev.fir3.wedding.linker.renaming.renameImportModule
 import dev.fir3.wedding.linker.sanity.checkForDuplicateExports
-import dev.fir3.wedding.wasm.Module
+import dev.fir3.wedding.wasm.*
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import kotlin.system.exitProcess
@@ -166,7 +166,85 @@ fun main(args: Array<String>) {
             ),
             "WasmSupport_data_start"
         )
+
+        pool.renameImportModule(
+            ImportIdentifier(
+                module = "WasmSupport",
+                name = "Hacl_Hash_MD5_hash",
+                sourceModule = "env"
+            ),
+            "Hacl_Hash_MD5"
+        )
     }
 
-    writeModule("LINKED.wasm", moduleLinked)
+    val moduleLinked3 = linkModules(
+        mapOf(
+            "LINKED" to moduleLinked,
+            "Karamel" to Module(
+                emptyList(),
+                listOf(
+                    ActiveData(
+                        ubyteArrayOf(0xC8u).toByteArray(),
+                        0u,
+                        listOf(Int32ConstInstruction(0))
+                    )
+                ),
+                emptyList(),
+                listOf(
+                    GlobalExport(0u, "FStar_data_start"),
+                    GlobalExport(1u, "Hacl_Hash_MD5_data_start"),
+                    GlobalExport(2u, "WasmSupport_data_start")
+                ),
+                emptyList(),
+                listOf(
+                    dev.fir3.wedding.wasm.Global(
+                        listOf(Int32ConstInstruction(11024)),
+                        false,
+                        NumberType.INT32
+                    ),
+                    dev.fir3.wedding.wasm.Global(
+                        listOf(Int32ConstInstruction(12048)),
+                        false,
+                        NumberType.INT32
+                    ),
+                    dev.fir3.wedding.wasm.Global(
+                        listOf(Int32ConstInstruction(13072)),
+                        false,
+                        NumberType.INT32
+                    )
+                ),
+                listOf(
+                    MemoryImport(
+                        limits = Limits(256u, 256u),
+                        module = "LINKED",
+                        name = "memory"
+                    )
+                ),
+                emptyList(),
+                null,
+                emptyList(),
+                emptyList()
+            )
+        )
+    ) { pool ->
+        pool.renameImport(
+            ImportIdentifier(
+                module = "LINKED",
+                name = "mem",
+                sourceModule = "Karamel"
+            ),
+            "memory"
+        )
+
+        pool.renameImportModule(
+            ImportIdentifier(
+                module = "LINKED",
+                name = "memory",
+                sourceModule = "Karamel"
+            ),
+            "LINKED"
+        )
+    }
+
+    writeModule("LINKED.wasm", moduleLinked3)
 }
