@@ -75,6 +75,7 @@ fun Pool.linkStartFunctions(syntheticSourceModuleName: String) {
     if (startFunctions.size == 1) {
         val startFunction = startFunctions.single()
         startFunction[FixedStartFunction::class] = FixedStartFunction
+        return
     }
 
     // Ensure that all start functions are exported.

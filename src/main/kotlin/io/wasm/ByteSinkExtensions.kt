@@ -53,7 +53,7 @@ internal fun ByteSink.writeVarInt64(value: Long) {
         var byte = remainder and 0x7F
         remainder = remainder shr 7
         `continue` = (remainder != -1L || ((byte and 0x40) == 0L)) &&
-                (remainder != 0L)
+                (remainder != 0L || ((byte and 0x40) == 0x40L))
 
         if (`continue`) byte = byte or 0x80
         write(byte.toByte())
