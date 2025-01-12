@@ -190,7 +190,7 @@ private fun fixInstruction(
     MemorySizeInstruction -> instruction
     is NonParameterizedInstructions -> instruction
     is ReferenceFunctionInstruction -> ReferenceFunctionInstruction(
-        functionIndex = poolSourceIndex.resolveFunctionTypeIndex(
+        functionIndex = poolSourceIndex.resolveFunctionIndex(
             sourceModule,
             instruction.functionIndex
         )
