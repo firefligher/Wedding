@@ -355,9 +355,9 @@ fun Pool.toModule(): Module {
 
         val typeIndex = function[FixedFunctionTypeIndex::class]!!.typeIndex
         val code = function[FixedFunctionBody::class]?.code
-        val startFunction = function[StartFunction::class]
+        val startFunction = function[FixedStartFunction::class]
 
-        if (startFunction != null) {
+        if (startFunction == FixedStartFunction) {
             startFunctionIndex = index
         }
 

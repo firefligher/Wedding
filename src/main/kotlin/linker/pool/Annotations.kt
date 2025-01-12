@@ -89,5 +89,6 @@ data class FixedGlobalInitializer(
 data class GlobalInitializer(val instructions: List<Instruction>) : Annotation
 data class GlobalType(val isMutable: Boolean, val type: ValueType) : Annotation
 data class MemoryInfo(val limits: Limits) : Annotation
+data object FixedStartFunction : Annotation
 data object StartFunction : Annotation
 data class TableInfo(val type: TableType) : Annotation
