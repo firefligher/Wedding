@@ -5,9 +5,6 @@ import dev.fir3.wedding.cli.converter.*
 import dev.fir3.wedding.io.foundation.InputStreamByteSource
 import dev.fir3.wedding.io.foundation.OutputStreamByteSink
 import dev.fir3.wedding.io.wasm.WasmContext
-import dev.fir3.wedding.linker.code.addGetter
-import dev.fir3.wedding.linker.code.addGlobal
-import dev.fir3.wedding.linker.code.addSetter
 import dev.fir3.wedding.linker.fixing.fixDatas
 import dev.fir3.wedding.linker.fixing.fixElements
 import dev.fir3.wedding.linker.fixing.fixFunctions
@@ -21,6 +18,10 @@ import dev.fir3.wedding.linker.renaming.rename
 import dev.fir3.wedding.linker.renaming.renameImport
 import dev.fir3.wedding.linker.renaming.renameImportModule
 import dev.fir3.wedding.linker.sanity.checkForDuplicateExports
+import dev.fir3.wedding.linker.synthetic.addData
+import dev.fir3.wedding.linker.synthetic.addGetter
+import dev.fir3.wedding.linker.synthetic.addGlobal
+import dev.fir3.wedding.linker.synthetic.addSetter
 import dev.fir3.wedding.wasm.Module
 import joptsimple.OptionParser
 import java.io.FileInputStream
@@ -43,13 +44,13 @@ fun main(args: Array<String>) {
 
     // Initialize the CLI Parser
 
-    val optAddMemoryAccessors = parser
+    val optAddData = parser
         .acceptsAll(
-            listOf("add-memory-accessors"),
-            "Adds a pair of memory accessor functions to the resulting module."
+            listOf("add-data"),
+            "Adds active data section to the resulting module."
         )
         .withRequiredArg()
-        .withValuesConvertedBy(MemoryAccessorConverter)
+        .withValuesConvertedBy(DataDefinitionConverter)
 
     val optAddGlobal = parser
         .acceptsAll(
@@ -58,6 +59,14 @@ fun main(args: Array<String>) {
         )
         .withRequiredArg()
         .withValuesConvertedBy(GlobalDefinitionConverter)
+
+    val optAddMemoryAccessors = parser
+        .acceptsAll(
+            listOf("add-memory-accessors"),
+            "Adds a pair of memory accessor functions to the resulting module."
+        )
+        .withRequiredArg()
+        .withValuesConvertedBy(MemoryAccessorConverter)
 
     val optDisplayPool = parser
         .acceptsAll(
@@ -180,6 +189,15 @@ fun main(args: Array<String>) {
     for ((initialValue, isMutable, name, type) in globals) {
         val global = pool.addGlobal(name, isMutable, type, initialValue)
         Out.writeInfo("Created global '%s'.", global.identifier)
+    }
+
+    // Generate data.
+
+    val datas = optAddData.values(options)
+
+    for ((identifier, address, bytes) in datas) {
+        val data = pool.addData(identifier, address, bytes)
+        Out.writeInfo("Created data '%s'.", data.identifier)
     }
 
     // Print some statistics and information.

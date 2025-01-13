@@ -1,8 +1,9 @@
-package dev.fir3.wedding.linker.code
+package dev.fir3.wedding.linker.synthetic
 
 import dev.fir3.wedding.cli.StorableType
 import dev.fir3.wedding.cli.StorableType.*
 import dev.fir3.wedding.linker.pool.*
+import dev.fir3.wedding.linker.pool.Data
 import dev.fir3.wedding.linker.pool.Function
 import dev.fir3.wedding.linker.pool.FunctionType
 import dev.fir3.wedding.linker.pool.Global
@@ -12,6 +13,8 @@ private const val MODULE = "__SYNTHETIC"
 private var nextTypeIndex = 0u
 private var nextFunctionIndex = 0u
 private var nextGlobal = 0u
+private var nextData = 0u
+private var nextMemory = 0u
 
 fun Pool.addGetter(
     name: String,
@@ -163,4 +166,39 @@ fun Pool.addGlobal(
 
     add(global)
     return global
+}
+
+fun Pool.addData(
+    memory: ExportIdentifier,
+    address: UInt,
+    bytes: ByteArray
+): Data {
+    add(
+        Memory(
+            mutableMapOf(
+                SourceModule::class to SourceModule(MODULE),
+                SourceIndex::class to SourceIndex(nextMemory++),
+                ImportModule::class to ImportModule(memory.module),
+                ImportName::class to ImportName(memory.names.first()),
+                MemoryInfo::class to resolve(memory)!![MemoryInfo::class]!!
+            )
+        )
+    )
+
+    val data = Data(
+        mutableMapOf(
+            SourceModule::class to SourceModule(MODULE),
+            SourceIndex::class to SourceIndex(nextData++),
+            ActiveDataInfo::class to ActiveDataInfo(
+                memoryIndex = nextMemory - 1u,
+                offset = listOf(
+                    Int32ConstInstruction(address.toInt())
+                )
+            ),
+            DataContent::class to DataContent(bytes)
+        )
+    )
+
+    add(data)
+    return data
 }
