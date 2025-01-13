@@ -21,7 +21,7 @@ fun Pool.link(): Set<Conflict> {
             ?: `object`[SourceNames::class]?.names
 
         assignedNames?.forEach { assignedName ->
-            val sourceModule = `object`[SourceModule::class]!!.name
+            val sourceModule = `object`.module
             exports[Pair(sourceModule, assignedName)] = `object`
         }
 

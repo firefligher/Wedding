@@ -26,7 +26,7 @@ fun Pool.mergeFunctionTypes() {
             continue
         }
 
-        val sourceModule = functionType[SourceModule::class]!!.name
+        val sourceModule = functionType.module
         val sourceIndex = functionType[SourceIndex::class]!!.index
 
         indices[type] = Pair(sourceModule, sourceIndex)
@@ -53,7 +53,7 @@ private fun mergeImports(objects: Collection<Object>, pool: Pool) {
             // need to cover both cases.
 
             if (`object`.isImportCompatibleWith(import, pool)) {
-                val sourceModule = import[SourceModule::class]!!.name
+                val sourceModule = import.module
                 val sourceIndex = import[SourceIndex::class]!!.index
 
                 `object`[ImportDuplicate::class] = ImportDuplicate(
@@ -63,7 +63,7 @@ private fun mergeImports(objects: Collection<Object>, pool: Pool) {
 
                 continue
             } else if (import.isImportCompatibleWith(`object`, pool)) {
-                val sourceModule = `object`[SourceModule::class]!!.name
+                val sourceModule = `object`.module
                 val sourceIndex = `object`[SourceIndex::class]!!.index
 
                 import[ImportDuplicate::class] = ImportDuplicate(

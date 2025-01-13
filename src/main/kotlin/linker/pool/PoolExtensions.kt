@@ -258,7 +258,7 @@ private fun <TObject : Object> createSourceIndex(
     val map = mutableMapOf<Pair<String, UInt>, TObject>()
 
     for (`object` in objects) {
-        val sourceModule = `object`[SourceModule::class]!!.name
+        val sourceModule = `object`.module
         val sourceIndex = `object`[SourceIndex::class]!!.index
 
         map[Pair(sourceModule, sourceIndex)] = `object`
@@ -267,18 +267,8 @@ private fun <TObject : Object> createSourceIndex(
     return map
 }
 
-fun Pool.resolve(identifier: Identifier): Object? {
-    val entries = datas
-        .union(elements)
-        .union(functions)
-        .union(functionTypes)
-        .union(globals)
-        .union(memories)
-        .union(tables)
-
-    return entries.singleOrNull { `object` ->
-        `object`.identifier == identifier
-    }
+fun Pool.resolve(identifier: Identifier) = singleOrNull { `object` ->
+    `object`.identifier == identifier
 }
 
 fun Pool.toModule(): Module {
@@ -534,4 +524,12 @@ fun Pool.toModule(): Module {
             .sortedBy { (index, _) -> index }
             .map { (_, type) -> type },
     )
+}
+
+fun Pool.unresolved() = filter { `object` ->
+    val importModule = `object`[ImportModule::class]
+    val importName = `object`[ImportName::class]
+    val importResolution = `object`[ImportResolution::class]
+
+    importModule != null && importName != null && importResolution == null
 }

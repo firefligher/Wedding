@@ -6,7 +6,7 @@ import dev.fir3.wedding.wasm.*
 fun Pool.fixDatas(poolSourceIndex: PoolSourceIndex) {
     for (data in datas) {
         val activeDataOffset = data[ActiveDataInfo::class] ?: continue
-        val sourceModule = data[SourceModule::class]!!.name
+        val sourceModule = data.module!!
 
         data[FixedActiveDataInfo::class] = FixedActiveDataInfo(
             memoryIndex = poolSourceIndex.resolveMemoryIndex(
@@ -25,7 +25,7 @@ fun Pool.fixDatas(poolSourceIndex: PoolSourceIndex) {
 fun Pool.fixElements(poolSourceIndex: PoolSourceIndex) {
     for (element in elements) {
         val initializers = element[ElementInfo::class]!!.initializers
-        val sourceModule = element[SourceModule::class]!!.name
+        val sourceModule = element.module!!
 
         element[FixedElementInitializers::class] = FixedElementInitializers(
             initializers.map { initializer ->
@@ -52,7 +52,7 @@ fun Pool.fixElements(poolSourceIndex: PoolSourceIndex) {
 fun Pool.fixFunctions(poolSourceIndex: PoolSourceIndex) {
     for (function in functions) {
         val typeIndex = function[FunctionTypeIndex::class]!!.typeIndex
-        val sourceModule = function[SourceModule::class]!!.name
+        val sourceModule = function.module
 
         function[FixedFunctionTypeIndex::class] = FixedFunctionTypeIndex(
             poolSourceIndex.resolveFunctionTypeIndex(
@@ -80,7 +80,7 @@ fun Pool.fixGlobals(poolSourceIndex: PoolSourceIndex) {
         val initializer = global[GlobalInitializer::class]?.instructions
             ?: continue
 
-        val sourceModule = global[SourceModule::class]!!.name
+        val sourceModule = global.module
 
         global[FixedGlobalInitializer::class] = FixedGlobalInitializer(
             instructions = fixInstructions(

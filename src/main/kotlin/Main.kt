@@ -1,8 +1,13 @@
 package dev.fir3.wedding
 
+import dev.fir3.wedding.cli.Out
+import dev.fir3.wedding.cli.converter.*
 import dev.fir3.wedding.io.foundation.InputStreamByteSource
 import dev.fir3.wedding.io.foundation.OutputStreamByteSink
 import dev.fir3.wedding.io.wasm.WasmContext
+import dev.fir3.wedding.linker.code.addGetter
+import dev.fir3.wedding.linker.code.addGlobal
+import dev.fir3.wedding.linker.code.addSetter
 import dev.fir3.wedding.linker.fixing.fixDatas
 import dev.fir3.wedding.linker.fixing.fixElements
 import dev.fir3.wedding.linker.fixing.fixFunctions
@@ -11,17 +16,16 @@ import dev.fir3.wedding.linker.linking.link
 import dev.fir3.wedding.linker.linking.linkStartFunctions
 import dev.fir3.wedding.linker.merging.*
 import dev.fir3.wedding.linker.pool.*
-import dev.fir3.wedding.linker.pool.Data
-import dev.fir3.wedding.linker.pool.FunctionType
 import dev.fir3.wedding.linker.relocation.*
 import dev.fir3.wedding.linker.renaming.rename
 import dev.fir3.wedding.linker.renaming.renameImport
 import dev.fir3.wedding.linker.renaming.renameImportModule
 import dev.fir3.wedding.linker.sanity.checkForDuplicateExports
-import dev.fir3.wedding.wasm.*
+import dev.fir3.wedding.wasm.Module
+import joptsimple.OptionParser
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.util.UUID
+import java.util.*
 import kotlin.system.exitProcess
 
 private fun readModule(path: String): Module = FileInputStream(path)
@@ -34,19 +38,244 @@ private fun writeModule(path: String, module: Module) = FileOutputStream(path)
         WasmContext.serialize(sink, module)
     }
 
-private fun linkModules(
-    modules: Map<String, Module>,
-    preprocessing: ((Pool) -> Unit)? = null
-): Module {
+fun main(args: Array<String>) {
+    val parser = OptionParser()
+
+    // Initialize the CLI Parser
+
+    val optAddMemoryAccessors = parser
+        .acceptsAll(
+            listOf("add-memory-accessors"),
+            "Adds a pair of memory accessor functions to the resulting module."
+        )
+        .withRequiredArg()
+        .withValuesConvertedBy(MemoryAccessorConverter)
+
+    val optAddGlobal = parser
+        .acceptsAll(
+            listOf("add-global"),
+            "Adds a global to the resulting module."
+        )
+        .withRequiredArg()
+        .withValuesConvertedBy(GlobalDefinitionConverter)
+
+    val optDisplayPool = parser
+        .acceptsAll(
+            listOf("display-pool"),
+            "Displays the pool after parsing all input files."
+        )
+
+    val optDisplayUnresolved = parser
+        .acceptsAll(
+            listOf("display-unresolved"),
+            "Displays unresolved imports that linking could not resolve."
+        )
+
+    val optHelp = parser.acceptsAll(listOf("h", "help"), "Shows this help.")
+    val optOutputPath = parser
+        .acceptsAll(
+            listOf("o", "output"),
+            "The path to the resulting WebAssembly module binary."
+        )
+        .withRequiredArg()
+
+    val optRename = parser
+        .acceptsAll(
+            listOf("r", "rename"),
+            "Replaces all names of an export."
+        )
+        .withRequiredArg()
+        .withValuesConvertedBy(RenamingConverter)
+
+    val optRenameImport = parser
+        .acceptsAll(
+            listOf("ri", "rename-import"),
+            "Renames an import."
+        )
+        .withRequiredArg()
+        .withValuesConvertedBy(ImportRenamingConverter)
+
+    val optRenameImportModule = parser
+        .acceptsAll(
+            listOf("rim", "rename-import-module"),
+            "Renames the source module of some import."
+        )
+        .withRequiredArg()
+        .withValuesConvertedBy(ImportModuleRenamingConverter)
+
+    val optSourceModules = parser
+        .acceptsAll(
+            listOf("m", "module"),
+            "The name of some WebAssembly module that shall be linked."
+        )
+        .withRequiredArg()
+
+    val optSourcePaths = parser
+        .acceptsAll(
+            listOf("i", "input"),
+            "The path to some WebAssembly module binary that shall be linked."
+        )
+        .withRequiredArg()
+
+    // Parse the command-line arguments
+
+    val options = parser.parse(*args)
+
+    if (options.has(optHelp)) {
+        parser.printHelpOn(System.out)
+        return
+    }
+
+    // Evaluate the command-line options.
+
+    val sourceModules = optSourceModules.values(options)
+    val sourcePaths = optSourcePaths.values(options)
+
+    if (sourceModules.size != sourcePaths.size) {
+        Out.writeError(
+            "The number of source modules does not match the number paths. " +
+                    "Received %d modules and %d paths. Please ensure that " +
+                    "each module corresponds a path and vice versa.",
+            sourceModules.size,
+            sourcePaths.size
+        )
+
+        exitProcess(1)
+    }
+
     val pool = Pool()
 
-    modules.forEach { (name, module) -> pool.add(name, module) }
-    preprocessing?.invoke(pool)
+    sourceModules.zip(sourcePaths).forEach { (name, path) ->
+        Out.writeInfo("Loading module '%s' from '%s' into pool.", name, path)
+        pool.add(name, readModule(path))
+    }
+
+    // Generate memory accessors.
+
+    val memoryAccessors = optAddMemoryAccessors.values(options)
+
+    for ((getter, setter, address, type) in memoryAccessors) {
+        val getterFunction = pool.addGetter(getter, address, type)
+        val setterFunction = pool.addSetter(setter, address, type)
+
+        Out.writeInfo(
+            "Created getter '%s' for '%s' at '%s'.",
+            getterFunction.identifier,
+            type,
+            address.toString()
+        )
+
+        Out.writeInfo(
+            "Created setter '%s' for '%s' at '%s'.",
+            setterFunction.identifier,
+            type,
+            address.toString()
+        )
+    }
+
+    // Generate globals.
+
+    val globals = optAddGlobal.values(options)
+
+    for ((initialValue, isMutable, name, type) in globals) {
+        val global = pool.addGlobal(name, isMutable, type, initialValue)
+        Out.writeInfo("Created global '%s'.", global.identifier)
+    }
+
+    // Print some statistics and information.
+
+    Out.writeInfo(
+        "Pool statistics: %d datas, %d elements, %d functions, " +
+                "%d function types, %d globals, %d memories, %d tables.",
+        pool.datas.size,
+        pool.elements.size,
+        pool.functions.size,
+        pool.functionTypes.size,
+        pool.globals.size,
+        pool.memories.size,
+        pool.tables.size
+    )
+
+    if (options.has(optDisplayPool)) {
+        Out.writeInfo(
+            "Objects with the following identifiers exist in the pool:"
+        )
+
+        pool.map(Object::identifier)
+            .map(Identifier::toString)
+            .forEach(Out::writeInfo)
+    }
+
+    // The actual linking
+
+    val renamings = optRename.values(options)
+    val importRenamings = optRenameImport.values(options)
+    val importModuleRenamings = optRenameImportModule.values(options)
+
+    for ((identifier, newName) in renamings) {
+        if (pool.rename(identifier, newName)) {
+            Out.writeInfo(
+                "Successfully renamed '%s' to '%s'",
+                identifier,
+                ExportIdentifier(identifier.module, setOf(newName))
+            )
+        } else {
+            Out.writeError(
+                "Failed renaming '%s', because it does not exist.",
+                identifier
+            )
+        }
+    }
+
+    for ((identifier, newModule) in importModuleRenamings) {
+        if (pool.renameImportModule(identifier, newModule)) {
+            Out.writeInfo(
+                "Successfully renamed '%s' to '%s'",
+                identifier,
+                identifier.copy(sourceModule = newModule)
+            )
+        } else {
+            Out.writeError(
+                "Failed renaming '%s', because it does not exist.",
+                identifier
+            )
+        }
+    }
+
+    for ((identifier, newName) in importRenamings) {
+        if (pool.renameImport(identifier, newName)) {
+            Out.writeInfo(
+                "Successfully renamed '%s' to '%s'",
+                identifier,
+                identifier.copy(name = newName)
+            )
+        } else {
+            Out.writeError(
+                "Failed renaming '%s', because it does not exist.",
+                identifier
+            )
+        }
+    }
 
     val duplicateExports = pool.checkForDuplicateExports()
 
     if (duplicateExports.isNotEmpty()) {
-        println(duplicateExports)
+        Out.writeInfo(
+            "Linking failed due to duplicates in the exported names."
+        )
+
+        for (export in duplicateExports) {
+            Out.writeInfo(
+                "The name '%s' collides for objects with the following " +
+                        "identifiers:",
+                export.name
+            )
+
+            for (`object` in export.objects) {
+                Out.writeInfo(" * %s", `object`.identifier)
+            }
+        }
+
         exitProcess(1)
     }
 
@@ -54,8 +283,25 @@ private fun linkModules(
     val conflicts = pool.link()
 
     if (conflicts.isNotEmpty()) {
+        // TODO
         println(conflicts)
         exitProcess(1)
+    }
+
+    if (options.has(optDisplayUnresolved)) {
+        val unresolvedObjects = pool.unresolved()
+
+        if (unresolvedObjects.isEmpty()) {
+            Out.writeInfo("All objects are resolved.")
+        } else {
+            Out.writeInfo(
+                "The objects with the following identifiers are unresolved:"
+            )
+
+            for (unresolvedObject in unresolvedObjects) {
+                Out.writeInfo(" * %s", unresolvedObject.identifier)
+            }
+        }
     }
 
     pool.mergeFunctionImports()
@@ -78,289 +324,16 @@ private fun linkModules(
     pool.fixFunctions(sourceIndex)
     pool.fixGlobals(sourceIndex)
 
-    return pool.toModule()
-}
+    if (!options.has(optOutputPath)) {
+        Out.writeWarning(
+            "Cannot persist module, because no output path was specified."
+        )
 
-fun main(args: Array<String>) {
-    val modulesPaths = mapOf(
-        "FStar" to "input/FStar.wasm",
-        "Hacl_Bignum25519_51" to "input/Hacl_Bignum25519_51.wasm",
-        "Hacl_Curve25519_51" to "input/Hacl_Curve25519_51.wasm",
-        "Hacl_Ed25519" to "input/Hacl_Ed25519.wasm",
-        "Hacl_Ed25519_PrecompTable" to "input/Hacl_Ed25519_PrecompTable.wasm",
-        "Hacl_Hash_SHA2" to "input/Hacl_Hash_SHA2.wasm",
-        "Polyfill" to "polyfill/Polyfill.wasm",
-        "WasmSupport" to "input/WasmSupport.wasm"
-    )
-
-    val modules = modulesPaths.mapValues { (_, path) ->
-        readModule(path)
+        return
     }
 
-    val linkedModule = linkModules(modules) { pool ->
-        // Support module for the polyfill
+    val outputPath = optOutputPath.value(options)
 
-        val supportModule = UUID.randomUUID().toString()
-
-        pool.add(
-            FunctionType(
-                mutableMapOf(
-                    SourceModule::class to SourceModule(supportModule),
-                    SourceIndex::class to SourceIndex(0u),
-                    FunctionTypeInfo::class to FunctionTypeInfo(
-                        dev.fir3.wedding.wasm.FunctionType(
-                            listOf(NumberType.INT32),
-                            emptyList()
-                        )
-                    )
-                )
-            )
-        )
-
-        pool.add(
-            Function(
-                mutableMapOf(
-                    SourceModule::class to SourceModule(supportModule),
-                    SourceIndex::class to SourceIndex(0u),
-                    FunctionTypeIndex::class to FunctionTypeIndex(0u),
-                    FunctionBody::class to FunctionBody(
-                        Code(
-                            listOf(
-                                Int32ConstInstruction(0),
-                                LocalGetInstruction(0u),
-                                Int32StoreInstruction(0u, 0u)
-                            ),
-                            emptyList()
-                        )
-                    ),
-                    AssignedName::class to
-                            AssignedName("Support_SetHaclStackPtr")
-                )
-            )
-        )
-
-        pool.add(
-            FunctionType(
-                mutableMapOf(
-                    SourceModule::class to SourceModule(supportModule),
-                    SourceIndex::class to SourceIndex(1u),
-                    FunctionTypeInfo::class to FunctionTypeInfo(
-                        dev.fir3.wedding.wasm.FunctionType(
-                            emptyList(),
-                            listOf(NumberType.INT32)
-                        )
-                    )
-                )
-            )
-        )
-
-        pool.add(
-            Function(
-                mutableMapOf(
-                    SourceModule::class to SourceModule(supportModule),
-                    SourceIndex::class to SourceIndex(1u),
-                    FunctionTypeIndex::class to FunctionTypeIndex(1u),
-                    FunctionBody::class to FunctionBody(
-                        Code(
-                            listOf(
-                                Int32ConstInstruction(0),
-                                Int32LoadInstruction(0u, 0u)
-                            ),
-                            emptyList()
-                        )
-                    ),
-                    AssignedName::class to
-                            AssignedName("Support_GetHaclStackPtr")
-                )
-            )
-        )
-
-        // Polyfill modifications.
-
-        pool.renameImportModule(
-            identifier = ImportIdentifier(
-                module = "Polyfill",
-                name = "Hacl_Hash_SHA2_hash_256",
-                sourceModule = "env"
-            ),
-            newModule = "Hacl_Hash_SHA2"
-        )
-
-        pool.renameImportModule(
-            identifier = ImportIdentifier(
-                module = "Polyfill",
-                name = "Hacl_Hash_SHA2_hash_512",
-                sourceModule = "env"
-            ),
-            newModule = "Hacl_Hash_SHA2"
-        )
-
-        pool.renameImportModule(
-            identifier = ImportIdentifier(
-                module = "Polyfill",
-                name = "Hacl_Ed25519_sign",
-                sourceModule = "env"
-            ),
-            newModule = "Hacl_Ed25519"
-        )
-
-        pool.renameImportModule(
-            identifier = ImportIdentifier(
-                module = "Polyfill",
-                name = "Support_GetHaclStackPtr",
-                sourceModule = "env"
-            ),
-            newModule = supportModule
-        )
-
-        pool.renameImportModule(
-            identifier = ImportIdentifier(
-                module = "Polyfill",
-                name = "Support_SetHaclStackPtr",
-                sourceModule = "env"
-            ),
-            newModule = supportModule
-        )
-
-        // Some other code.
-
-        var dataOffset = 65536u + 128u
-
-        modules.keys.forEach { moduleName ->
-            if (moduleName == "Polyfill") return@forEach
-
-            // Rename things.
-
-            pool.rename(
-                identifier = ExportIdentifier(
-                    module = moduleName,
-                    names = setOf("data_size")
-                ),
-                newName = "R${moduleName}_data_size"
-            )
-
-            pool.renameImportModule(
-                identifier = ImportIdentifier(
-                    module = moduleName,
-                    name = "WasmSupport_malloc",
-                    sourceModule = "WasmSupport"
-                ),
-                newModule = "Polyfill"
-            )
-
-            pool.renameImportModule(
-                identifier = ImportIdentifier(
-                    module = moduleName,
-                    name = "WasmSupport_trap",
-                    sourceModule = "WasmSupport"
-                ),
-                newModule = "Polyfill"
-            )
-
-            pool.renameImport(
-                identifier = ImportIdentifier(
-                    module = moduleName,
-                    name = "mem",
-                    sourceModule = "Karamel"
-                ),
-                newName = "memory"
-            )
-
-            pool.renameImportModule(
-                identifier = ImportIdentifier(
-                    module = moduleName,
-                    name = "memory",
-                    sourceModule = "Karamel"
-                ),
-                newModule = "Polyfill"
-            )
-
-            // Fix Memory Layout.
-
-            val dataSizeGlobal = pool.resolve(
-                ExportIdentifier(
-                    module = moduleName,
-                    names = setOf("R${moduleName}_data_size"),
-                )
-            )
-
-            val dataSizeInstruction =
-                dataSizeGlobal!![GlobalInitializer::class]!!
-                    .instructions
-                    .single() as Int32ConstInstruction
-
-            val dataStartGlobal = pool.resolve(
-                identifier = ImportIdentifier(
-                    module = moduleName,
-                    name = "data_start",
-                    sourceModule = "Karamel"
-                ),
-            )
-
-            setOf(
-                AssignedImportModule::class,
-                AssignedImportName::class,
-                ImportDuplicate::class,
-                ImportModule::class,
-                ImportName::class,
-                ImportResolution::class
-            ).forEach {
-                dataStartGlobal!!.annotations.remove(it)
-            }
-
-            dataStartGlobal!![GlobalInitializer::class] = GlobalInitializer(
-                instructions = listOf(
-                    Int32ConstInstruction(dataOffset.toInt())
-                )
-            )
-
-            dataStartGlobal[AssignedName::class] =
-                AssignedName("${moduleName}_data_start")
-
-            dataOffset += dataSizeInstruction.constant.toUInt()
-        }
-
-        // Add some data that initializes the HACL*'s memory header.
-
-        val headerModule = UUID.randomUUID().toString()
-
-        pool.add(
-            Memory(
-                mutableMapOf(
-                    SourceModule::class to SourceModule(headerModule),
-                    ImportModule::class to ImportModule("Polyfill"),
-                    ImportName::class to ImportName("memory"),
-                    SourceIndex::class to SourceIndex(0u),
-                    MemoryInfo::class to MemoryInfo(
-                        Limits(1u, null)
-                    )
-                )
-            )
-        )
-
-        pool.add(
-            Data(
-                mutableMapOf(
-                    SourceModule::class to SourceModule(headerModule),
-                    SourceIndex::class to SourceIndex(0u),
-                    DataContent::class to DataContent(
-                        byteArrayOf(
-                            (dataOffset and 0xFFu).toByte(),
-                            ((dataOffset shr 8) and 0xFFu).toByte(),
-                            ((dataOffset shr 16) and 0xFFu).toByte(),
-                            ((dataOffset shr 24) and 0xFFu).toByte()
-                        )
-                    ),
-                    ActiveDataInfo::class to ActiveDataInfo(
-                        memoryIndex = 0u,
-                        offset = listOf(
-                            Int32ConstInstruction(0)
-                        )
-                    )
-                )
-            )
-        )
-    }
-
-    writeModule("LINKED.wasm", linkedModule)
+    Out.writeInfo("Writing linked module to '%s'.", outputPath)
+    writeModule(outputPath, pool.toModule())
 }

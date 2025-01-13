@@ -15,9 +15,9 @@ fun Object.isImportCompatibleWith(
         is Function -> {
             if (`object` !is Function) return false
 
-            val ourModule = this[SourceModule::class]!!.name
+            val ourModule = this.module
             val ourTypeIndex = this[FunctionTypeIndex::class]!!.typeIndex
-            val theirModule = `object`[SourceModule::class]!!.name
+            val theirModule = `object`.module
             val theirTypeIndex = `object`[FunctionTypeIndex::class]!!.typeIndex
 
             val ourTypeObject = pool.resolve(
@@ -81,3 +81,5 @@ operator fun <TAnnotation : Annotation> Object.set(
 ) {
     annotations[model] = value
 }
+
+val Object.module get() = this[SourceModule::class]!!.name

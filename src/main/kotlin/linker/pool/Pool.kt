@@ -8,7 +8,7 @@ data class Pool(
     val globals: MutableList<Global> = mutableListOf(),
     val memories: MutableList<Memory> = mutableListOf(),
     val tables: MutableList<Table> = mutableListOf()
-) {
+) : Iterable<Object> {
     fun add(`object`: Object) = when (`object`) {
         is Data -> datas += `object`
         is Element -> elements += `object`
@@ -27,5 +27,17 @@ data class Pool(
         is Global -> globals -= `object`
         is Memory -> memories -= `object`
         is Table -> tables -= `object`
+    }
+
+    override fun iterator(): Iterator<Object> {
+        return sequence {
+            yieldAll(datas)
+            yieldAll(elements)
+            yieldAll(functions)
+            yieldAll(functionTypes)
+            yieldAll(globals)
+            yieldAll(memories)
+            yieldAll(tables)
+        }.iterator()
     }
 }

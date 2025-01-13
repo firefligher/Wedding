@@ -20,19 +20,37 @@ data class ExportIdentifier(
     override fun hashCode(): Int {
         return module.hashCode()
     }
+
+    override fun toString(): String {
+        return escapeComponent(module) +
+                "." +
+                names.joinToString(",", transform = ::escapeComponent)
+    }
 }
 
 data class ImportIdentifier(
     override val module: String,
     val name: String,
     val sourceModule: String
-) : Identifier
+) : Identifier {
+    override fun toString(): String {
+        return escapeComponent(module) +
+                ":" +
+                escapeComponent(sourceModule) +
+                "." +
+                escapeComponent(name)
+    }
+}
 
 data class IndexIdentifier(
     val index: UInt,
     override val module: String,
     val type: ObjectType
-) : Identifier
+) : Identifier {
+    override fun toString(): String {
+        return escapeComponent(module) + "[" + type.name + "]:" + index
+    }
+}
 
 enum class ObjectType {
     DATA,
@@ -61,9 +79,12 @@ fun makeIdentifier(
         )
     }
 
-    val importModule = annotations[ImportModule::class]?.let { annotation ->
-        annotation as ImportModule
-    }?.name
+    val importModule = annotations[AssignedImportModule::class]
+        ?.let { annotation -> annotation as AssignedImportModule }
+        ?.name
+        ?: annotations[ImportModule::class]
+            ?.let { annotation -> annotation as ImportModule }
+            ?.name
 
     val importName = annotations[AssignedImportName::class]
         ?.let { annotation -> annotation as AssignedImportName }?.name
@@ -86,3 +107,13 @@ fun makeIdentifier(
         type = objectType
     )
 }
+
+fun escapeComponent(component: String) = component.map { char ->
+    when (char) {
+        '\\' -> "\\\\"
+        ',' -> "\\,"
+        '.' -> "\\."
+        ':' -> "\\:"
+        else -> char.toString()
+    }
+}.joinToString(separator = "")
