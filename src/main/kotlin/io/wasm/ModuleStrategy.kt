@@ -1,5 +1,6 @@
 package dev.fir3.wedding.io.wasm
 
+import dev.fir3.wedding.cli.Out
 import dev.fir3.wedding.io.foundation.*
 import dev.fir3.wedding.io.foundation.readUInt8
 import dev.fir3.wedding.io.serialization.Context
@@ -23,11 +24,20 @@ object ModuleStrategy : Strategy<Module> {
                 break
             }
 
-            // Skip over the section size
-
-            source.readVarUInt32()
+            val sectionSize = source.readVarUInt32()
 
             when (sectionType.toUInt()) {
+                0x0u -> {
+                    val countingSource = CountingByteSource(source)
+                    val name = countingSource.readName()
+                    val remainingBytes = sectionSize - countingSource.count
+                    source.read(remainingBytes)
+
+                    Out.writeWarning(
+                        "Skipping custom section '$name' that consists of " +
+                                "$remainingBytes bytes"
+                    )
+                }
                 0x1u -> builder.types += context.deserializeVector(source)
                 0x2u -> builder.imports += context.deserializeVector(source)
                 0x3u -> builder.functions += source.readVarUInt32Vector()
