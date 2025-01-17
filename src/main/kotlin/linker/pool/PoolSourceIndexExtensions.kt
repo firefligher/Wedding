@@ -13,7 +13,7 @@ fun PoolSourceIndex.resolveElementIndex(
 fun PoolSourceIndex.resolveFunctionIndex(
     sourceModule: String,
     sourceIndex: UInt
-) = resolveImportable(sourceModule, sourceIndex, functions)
+) = resolveImportableIndex(sourceModule, sourceIndex, functions)
 
 fun PoolSourceIndex.resolveFunctionTypeIndex(
     sourceModule: String,
@@ -37,19 +37,19 @@ fun PoolSourceIndex.resolveFunctionTypeIndex(
 fun PoolSourceIndex.resolveGlobalIndex(
     sourceModule: String,
     sourceIndex: UInt
-) = resolveImportable(sourceModule, sourceIndex, globals)
+) = resolveImportableIndex(sourceModule, sourceIndex, globals)
 
 fun PoolSourceIndex.resolveMemoryIndex(
     sourceModule: String,
     sourceIndex: UInt
-) = resolveImportable(sourceModule, sourceIndex, memories)
+) = resolveImportableIndex(sourceModule, sourceIndex, memories)
 
 fun PoolSourceIndex.resolveTableIndex(
     sourceModule: String,
     sourceIndex: UInt
-) = resolveImportable(sourceModule, sourceIndex, tables)
+) = resolveImportableIndex(sourceModule, sourceIndex, tables)
 
-private fun resolveImportable(
+private fun resolveImportableIndex(
     sourceModule: String,
     sourceIndex: UInt,
     objects: Map<Pair<String, UInt>, Object>
@@ -63,6 +63,49 @@ private fun resolveImportable(
 
     if (relocatedIndex != null) {
         return relocatedIndex
+    }
+
+    // If the object is an unresolved import, but also a duplicate, the
+    // corresponding import index was associated with the object.
+
+    val importDuplicate = `object`[ImportDuplicate::class]
+
+    if (importDuplicate != null) {
+        return resolveImportableIndex(
+            importDuplicate.module,
+            importDuplicate.index,
+            objects
+        )
+    }
+
+    // Otherwise, the object was resolved and the corresponding object was
+    // assigned.
+
+    val importModule = `object`[AssignedImportModule::class]?.name
+        ?: `object`[ImportModule::class]!!.name
+
+    val importResolution = `object`[ImportResolution::class]!!.index
+
+    return resolveImportableIndex(importModule, importResolution, objects)
+}
+
+// TODO: Either merge 'resolveImportable' with 'resolveImportableIndex' or move
+//       'resolveImportable' to another file.
+
+fun resolveImportable(
+    sourceModule: String,
+    sourceIndex: UInt,
+    objects: Map<Pair<String, UInt>, Object>
+): Object {
+    val `object` = objects[Pair(sourceModule, sourceIndex)]!!
+
+    // If the object is a definition or an unresolved import (that is no
+    // duplicate), it was relocated and has a new index now.
+
+    val relocatedIndex = `object`[RelocatedIndex::class]?.index
+
+    if (relocatedIndex != null) {
+        return `object`
     }
 
     // If the object is an unresolved import, but also a duplicate, the

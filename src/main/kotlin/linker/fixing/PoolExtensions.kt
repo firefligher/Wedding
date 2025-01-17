@@ -6,14 +6,14 @@ import dev.fir3.wedding.wasm.*
 fun Pool.fixDatas(poolSourceIndex: PoolSourceIndex) {
     for (data in datas) {
         val activeDataOffset = data[ActiveDataInfo::class] ?: continue
-        val sourceModule = data.module!!
+        val sourceModule = data.module
 
         data[FixedActiveDataInfo::class] = FixedActiveDataInfo(
             memoryIndex = poolSourceIndex.resolveMemoryIndex(
                 sourceModule,
                 activeDataOffset.memoryIndex
             ),
-            offset = fixInstructions(
+            offset = fixInitializerInstructions(
                 activeDataOffset.offset,
                 sourceModule,
                 poolSourceIndex
@@ -25,18 +25,22 @@ fun Pool.fixDatas(poolSourceIndex: PoolSourceIndex) {
 fun Pool.fixElements(poolSourceIndex: PoolSourceIndex) {
     for (element in elements) {
         val initializers = element[ElementInfo::class]!!.initializers
-        val sourceModule = element.module!!
+        val sourceModule = element.module
 
         element[FixedElementInitializers::class] = FixedElementInitializers(
             initializers.map { initializer ->
-                fixInstructions(initializer, sourceModule, poolSourceIndex)
+                fixInitializerInstructions(
+                    initializer,
+                    sourceModule,
+                    poolSourceIndex
+                )
             }
         )
 
         val activeElementInfo = element[ActiveElementInfo::class] ?: continue
 
         element[FixedActiveElementInfo::class] = FixedActiveElementInfo(
-            offset = fixInstructions(
+            offset = fixInitializerInstructions(
                 activeElementInfo.offset,
                 sourceModule,
                 poolSourceIndex
@@ -84,11 +88,55 @@ fun Pool.fixGlobals(poolSourceIndex: PoolSourceIndex) {
 
         global[FixedGlobalInitializer::class] = FixedGlobalInitializer(
             instructions = fixInstructions(
-                initializer,
+                fixInitializerInstructions(
+                    initializer,
+                    sourceModule,
+                    poolSourceIndex
+                ),
                 sourceModule,
                 poolSourceIndex
             )
         )
+    }
+}
+
+private fun fixInitializerInstructions(
+    instructions: List<Instruction>,
+    sourceModule: String,
+    poolSourceIndex: PoolSourceIndex
+) = instructions.map { instruction ->
+    when (instruction) {
+        is GlobalGetInstruction -> {
+            // According to the WebAssembly specification, global.get
+            // instructions are only allowed, if they reference imported
+            // globals.
+            // Thus, we need to replace those global.get instructions with
+            // *.const instructions, that are no longer imported.
+
+            val global = resolveImportable(
+                sourceModule,
+                instruction.globalIndex,
+                poolSourceIndex.globals
+            )
+
+            // Due to the WebAssembly specification, global initializers can
+            // only consist of a single instruction.
+
+            fixInstruction(
+                global[GlobalInitializer::class]
+                    ?.instructions
+                    ?.single()
+                    ?: instruction,
+                sourceModule,
+                poolSourceIndex
+            )
+        }
+
+        // Recursively fixing instructions that embed other instructions
+        // (e.g., blocks) is unnecessary, because they cannot occur in
+        // initializers.
+
+        else -> fixInstruction(instruction, sourceModule, poolSourceIndex)
     }
 }
 
